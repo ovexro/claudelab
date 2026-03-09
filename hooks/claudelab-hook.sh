@@ -2,52 +2,34 @@
 # ──────────────────────────────────────────────────────────────────────
 # ClaudeLab Hook Script
 #
-# Add this to your Claude Code hooks configuration so ClaudeLab can
-# detect what Claude Code is doing in real time.
+# Claude Code hooks receive JSON on stdin with tool_name, hook_event_name, etc.
+# This script reads that JSON and writes the detected activity to
+# ~/.claudelab/state, which ClaudeLab reads to drive the animation.
 #
 # Setup:
-#   1. Copy this file somewhere on your PATH or note its full path.
-#   2. Add the hook to ~/.claude/hooks.json:
-#
-#      {
-#        "hooks": {
-#          "PreToolUse": [
-#            {
-#              "matcher": "",
-#              "hooks": ["bash /path/to/claudelab-hook.sh pre $TOOL_NAME"]
-#            }
-#          ],
-#          "PostToolUse": [
-#            {
-#              "matcher": "",
-#              "hooks": ["bash /path/to/claudelab-hook.sh post $TOOL_NAME $EXIT_CODE"]
-#            }
-#          ]
-#        }
-#      }
-#
-# The script writes a simple activity string to ~/.claudelab/state
-# which ClaudeLab reads to drive the animation.
+#   1. Ensure this file is executable: chmod +x claudelab-hook.sh
+#   2. Add to ~/.claude/hooks.json (see README.md for full config)
 # ──────────────────────────────────────────────────────────────────────
-
-set -euo pipefail
 
 STATE_DIR="${HOME}/.claudelab"
 STATE_FILE="${STATE_DIR}/state"
 
-# Ensure state directory exists
 mkdir -p "${STATE_DIR}"
 
 write_state() {
     printf '%s' "$1" > "${STATE_FILE}"
 }
 
-PHASE="${1:-}"       # "pre" or "post"
-TOOL="${2:-}"        # Tool name: Edit, Write, Bash, Read, Glob, Grep, etc.
-EXIT_CODE="${3:-0}"  # Exit code (only meaningful for PostToolUse)
+# Read JSON from stdin
+INPUT=$(cat)
 
-case "${PHASE}" in
-    pre)
+# Extract fields using python3 (available everywhere, no jq dependency)
+HOOK_EVENT=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('hook_event_name',''))" 2>/dev/null || echo "")
+TOOL=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_name',''))" 2>/dev/null || echo "")
+HAS_ERROR=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if d.get('error','') else 'no')" 2>/dev/null || echo "no")
+
+case "${HOOK_EVENT}" in
+    PreToolUse)
         case "${TOOL}" in
             Edit|Write|MultiEdit|NotebookEdit)
                 write_state "coding"
@@ -58,30 +40,31 @@ case "${PHASE}" in
             Read|Glob|Grep)
                 write_state "thinking"
                 ;;
+            Agent)
+                write_state "building"
+                ;;
             *)
                 write_state "thinking"
                 ;;
         esac
         ;;
-    post)
-        if [ "${EXIT_CODE}" != "0" ]; then
-            write_state "debugging"
-        else
-            case "${TOOL}" in
-                Edit|Write|MultiEdit|NotebookEdit)
-                    write_state "building"
-                    ;;
-                Bash|bash)
-                    write_state "running"
-                    ;;
-                *)
-                    write_state "thinking"
-                    ;;
-            esac
-        fi
+    PostToolUse)
+        case "${TOOL}" in
+            Edit|Write|MultiEdit|NotebookEdit)
+                write_state "building"
+                ;;
+            Bash|bash)
+                write_state "running"
+                ;;
+            *)
+                write_state "thinking"
+                ;;
+        esac
+        ;;
+    PostToolUseFailure)
+        write_state "debugging"
         ;;
     *)
-        # Unknown phase -- default to thinking
         write_state "thinking"
         ;;
 esac
