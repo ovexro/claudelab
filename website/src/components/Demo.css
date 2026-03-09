@@ -1,0 +1,201 @@
+/* ─── Demo Container ────────────────────────────────────────────── */
+
+.demo-container {
+  max-width: 750px;
+  margin: 0 auto;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.demo-container--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Scene Selector ────────────────────────────────────────────── */
+
+.demo-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.demo-scene-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.demo-scene-btn:hover {
+  background: var(--bg-card-hover);
+}
+
+.demo-scene-btn--active {
+  background: var(--bg-card-hover);
+}
+
+.demo-scene-icon {
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: pre;
+  color: inherit;
+}
+
+.demo-scene-name {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: inherit;
+}
+
+/* ─── Demo Terminal ─────────────────────────────────────────────── */
+
+.demo-terminal {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5), 0 0 80px rgba(0, 255, 65, 0.03);
+  animation: glow-pulse 4s ease-in-out infinite;
+  margin-bottom: 1.5rem;
+}
+
+.demo-terminal-chrome {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #161616;
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.5rem;
+}
+
+.demo-terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.demo-terminal-badge {
+  font-size: 0.6rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  transition: all 0.3s;
+}
+
+.demo-terminal-titlebar {
+  padding: 0.25rem 0;
+  text-align: center;
+  background: #0e0e0e;
+  border-bottom: 1px solid #1a1a1a;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.demo-terminal-body {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  line-height: 1.25;
+  color: var(--green-dim);
+  padding: 0.5rem 0.75rem;
+  min-height: 240px;
+  white-space: pre;
+  user-select: none;
+  overflow: hidden;
+}
+
+.demo-terminal-status {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0.75rem;
+  background: #161616;
+  border-top: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-dim);
+}
+
+/* ─── Command Hint ──────────────────────────────────────────────── */
+
+.demo-command {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.demo-command-prompt {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.demo-command-text {
+  color: var(--text-primary);
+}
+
+.demo-command-hint {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+}
+
+.inline-code {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--green-dim);
+}
+
+/* ─── Responsive ────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .demo-selector {
+    gap: 0.3rem;
+  }
+
+  .demo-scene-btn {
+    min-width: 60px;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .demo-terminal-body {
+    font-size: 0.38rem;
+    min-height: 180px;
+  }
+
+  .demo-command {
+    flex-wrap: wrap;
+    font-size: 0.7rem;
+  }
+
+  .demo-command-hint {
+    display: none;
+  }
+}

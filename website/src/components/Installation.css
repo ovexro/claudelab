@@ -1,0 +1,165 @@
+/* ─── Installation Grid ─────────────────────────────────────────── */
+
+.install-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.install-grid--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Install Step ──────────────────────────────────────────────── */
+
+.install-step {
+  max-width: 700px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.step-number {
+  font-size: 0.7rem;
+  color: var(--amber);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.step-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.step-note {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--border-color);
+  line-height: 1.5;
+}
+
+.note-label {
+  color: var(--amber-dim);
+  font-weight: 600;
+}
+
+/* ─── Terminal Block ────────────────────────────────────────────── */
+
+.term-block {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.term-block-chrome {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #161616;
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.5rem;
+}
+
+.term-block-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.term-block-dots .dot {
+  width: 8px;
+  height: 8px;
+}
+
+.term-block-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+}
+
+.term-block-body {
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.7;
+}
+
+/* ─── Terminal Lines ────────────────────────────────────────────── */
+
+.term-line {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.term-prompt {
+  color: var(--green);
+  font-weight: 700;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.term-command {
+  color: var(--text-primary);
+}
+
+.term-comment {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.term-output {
+  color: var(--text-secondary);
+  padding-left: 1.2rem;
+  font-size: 0.75rem;
+}
+
+.term-output--dim {
+  color: var(--text-dim);
+}
+
+.term-output--success {
+  color: var(--green-dim);
+}
+
+.term-output--amber {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.term-spacer {
+  height: 0.5rem;
+}
+
+/* ─── JSON Display ──────────────────────────────────────────────── */
+
+.term-json {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--green-dim);
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .term-block-body {
+    font-size: 0.7rem;
+    padding: 0.75rem;
+  }
+
+  .term-json {
+    font-size: 0.6rem;
+  }
+}

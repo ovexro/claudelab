@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "claudelab"
+version = "0.1.0"
+description = "A visual terminal companion for Claude Code — animated ASCII art of AI engineers working"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "ClaudeLab"}]
+keywords = ["claude", "terminal", "tui", "ascii-art", "animation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console :: Curses",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Utilities",
+]
+
+[project.scripts]
+claudelab = "claudelab.main:main"

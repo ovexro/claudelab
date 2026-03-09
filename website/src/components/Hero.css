@@ -1,0 +1,249 @@
+/* ─── Hero Section ──────────────────────────────────────────────── */
+
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6rem 2rem 4rem;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.hero--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Logo ──────────────────────────────────────────────────────── */
+
+.hero-logo {
+  margin-bottom: 2rem;
+}
+
+.hero-logo-ascii {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  line-height: 1.2;
+  color: var(--green);
+  text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0, 255, 65, 0.1);
+  white-space: pre;
+  user-select: none;
+}
+
+/* ─── Tagline ───────────────────────────────────────────────────── */
+
+.hero-tagline {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+}
+
+/* ─── Terminal Window ───────────────────────────────────────────── */
+
+.hero-terminal {
+  width: 100%;
+  max-width: 720px;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow:
+    0 0 30px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(0, 255, 65, 0.03),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
+  animation: glow-pulse 4s ease-in-out infinite;
+  margin-bottom: 2.5rem;
+}
+
+.terminal-chrome {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  background: #161616;
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.75rem;
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot--red { background: #ff5f57; }
+.dot--yellow { background: #febc2e; }
+.dot--green { background: #28c840; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.terminal-scene-badge {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.terminal-titlebar {
+  padding: 0.25rem 0;
+  text-align: center;
+  background: #0e0e0e;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.terminal-titlebar-text {
+  font-size: 0.6rem;
+  color: var(--amber);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.terminal-body {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.25;
+  color: var(--green-dim);
+  padding: 0.5rem 0.75rem;
+  min-height: 240px;
+  overflow: hidden;
+  white-space: pre;
+  user-select: none;
+}
+
+.terminal-statusbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 1rem;
+  background: #161616;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.6rem;
+  color: var(--text-dim);
+}
+
+/* ─── CTA Buttons ───────────────────────────────────────────────── */
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-icon {
+  font-weight: 700;
+}
+
+.btn--primary {
+  background: var(--green);
+  color: #000;
+  border-color: var(--green);
+}
+
+.btn--primary:hover {
+  background: transparent;
+  color: var(--green);
+  box-shadow: 0 0 20px var(--green-glow);
+}
+
+.btn--secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+.btn--secondary:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 20px var(--amber-glow);
+}
+
+/* ─── Scene Indicator ───────────────────────────────────────────── */
+
+.hero-scenes {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.scene-dot {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  padding: 0.2rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.scene-dot--active {
+  font-weight: 600;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 5rem 1rem 3rem;
+  }
+
+  .hero-logo-ascii {
+    font-size: 0.4rem;
+  }
+
+  .hero-tagline {
+    font-size: 1.3rem;
+  }
+
+  .terminal-body {
+    font-size: 0.4rem;
+    min-height: 180px;
+  }
+
+  .hero-terminal {
+    max-width: 100%;
+  }
+}
