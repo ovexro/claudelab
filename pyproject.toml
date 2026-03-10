@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0"]
+requires = ["setuptools>=68.0,<77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,18 +9,25 @@ description = "A visual terminal companion for Claude Code — animated isometri
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
-authors = [{name = "ClaudeLab"}]
-keywords = ["claude", "terminal", "tui", "isometric", "pixel-art", "animation"]
+authors = [{name = "Ovidiu", email = "nubiraorg@gmail.com"}]
+keywords = ["claude", "claude-code", "terminal", "tui", "isometric", "pixel-art", "animation", "companion"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console :: Curses",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Utilities",
+    "Operating System :: POSIX :: Linux",
 ]
 
 [tool.setuptools.packages.find]
 include = ["claudelab*"]
+
+[tool.setuptools.package-data]
+claudelab = ["hooks/*.sh"]
 
 [project.urls]
 Homepage = "https://claudelab.dev"

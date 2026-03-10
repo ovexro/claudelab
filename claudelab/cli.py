@@ -33,23 +33,19 @@ def _find_hook_script() -> Path | None:
     """Locate the ClaudeLab hook script.
 
     Search order:
-    1. Next to this package (git clone / editable install)
-    2. Installed via pip (alongside the package in site-packages)
+    1. Inside the installed package (pip install — claudelab/hooks/)
+    2. Next to this package (git clone — ../hooks/)
     3. Common clone locations
     """
-    # 1. Relative to this file (repo layout: claudelab/cli.py -> ../hooks/)
+    # 1. Inside the Python package (pip install puts it here via package-data)
+    pkg_hook = Path(__file__).resolve().parent / "hooks" / "claudelab-hook.sh"
+    if pkg_hook.exists():
+        return pkg_hook
+
+    # 2. Relative to this file (repo layout: claudelab/cli.py -> ../hooks/)
     repo_hook = Path(__file__).resolve().parent.parent / "hooks" / "claudelab-hook.sh"
     if repo_hook.exists():
         return repo_hook
-
-    # 2. Check if installed as package data
-    try:
-        import importlib.resources as ir
-        ref = ir.files("claudelab") / "hooks" / "claudelab-hook.sh"
-        if hasattr(ref, "_path") and Path(ref._path).exists():
-            return Path(ref._path)
-    except Exception:
-        pass
 
     # 3. Common locations
     for candidate in [
