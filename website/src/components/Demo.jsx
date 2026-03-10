@@ -115,7 +115,7 @@ function Demo() {
               Activity: <span style={{ color }}>{SCENES[activeScene]?.name.toUpperCase()}</span>
             </span>
             <span>8 FPS</span>
-            <span>ClaudeLab v0.1.0</span>
+            <span>ClaudeLab v0.1.1</span>
           </div>
         </div>
 
