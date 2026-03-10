@@ -125,6 +125,13 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             wb_y = max(1, oy - wall_h + 2)
             _draw_whiteboard(buf, wb_x, wb_y, wb_w, wb_h, fi)
 
+        # Error text on monitors FIRST (behind agents in 3D space)
+        mx1, my1, mw1, mh1 = layout["mon1_rect"]
+        _draw_error_monitor(buf, mx1, my1, mw1, mh1, fi)
+        if width >= 60:
+            mx, my, mw, mh = layout["mon2_rect"]
+            _draw_error_monitor(buf, mx, my, mw, mh, fi)
+
         # Agent 1 pointing (standing near whiteboard area)
         if width >= 40:
             pointer = STANDING_POINTING[fi % len(STANDING_POINTING)]
@@ -142,14 +149,6 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
                 ox, oy, examiner.height,
             )
             buf.draw_sprite(examiner, ax2, ay2)
-
-            # Error text on monitor 2
-            mx, my, mw, mh = layout["mon2_rect"]
-            _draw_error_monitor(buf, mx, my, mw, mh, fi)
-
-        # Error text on monitor 1
-        mx1, my1, mw1, mh1 = layout["mon1_rect"]
-        _draw_error_monitor(buf, mx1, my1, mw1, mh1, fi)
 
         # Warning triangle (blinks)
         if fi % 3 != 2:

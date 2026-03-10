@@ -105,6 +105,14 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
         ox = layout["origin_x"]
         oy = layout["origin_y"]
 
+        # Code on monitors FIRST (behind agents in 3D space)
+        if width >= 40:
+            mx, my, mw, mh = layout["mon1_rect"]
+            _draw_code_on_monitor(buf, mx, my, mw, mh, fi)
+        if width >= 60:
+            mx2, my2, mw2, mh2 = layout["mon2_rect"]
+            _draw_code_on_monitor(buf, mx2, my2, mw2, mh2, fi + 3)
+
         # Agent 1 typing at desk 1
         if width >= 40:
             agent = SITTING_TYPING[fi % len(SITTING_TYPING)]
@@ -114,10 +122,6 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             )
             buf.draw_sprite(agent, ax, ay)
 
-            # Code on monitor 1
-            mx, my, mw, mh = layout["mon1_rect"]
-            _draw_code_on_monitor(buf, mx, my, mw, mh, fi)
-
         # Agent 2 typing at desk 2
         if width >= 60:
             agent2 = SITTING_TYPING_2[fi % len(SITTING_TYPING_2)]
@@ -126,10 +130,6 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
                 ox, oy, agent2.height,
             )
             buf.draw_sprite(agent2, ax2, ay2)
-
-            # Code on monitor 2
-            mx2, my2, mw2, mh2 = layout["mon2_rect"]
-            _draw_code_on_monitor(buf, mx2, my2, mw2, mh2, fi + 3)
 
         frames.append(buf)
     return frames

@@ -118,6 +118,13 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             panel_y = max(1, oy - wall_h + 2)
             _draw_control_panel(buf, panel_x, panel_y, panel_w, panel_h, fi)
 
+        # Log on monitors FIRST (behind agents in 3D space)
+        mx1, my1, mw1, mh1 = layout["mon1_rect"]
+        _draw_log_output(buf, mx1, my1, mw1, mh1, fi)
+        if width >= 60:
+            mx2, my2, mw2, mh2 = layout["mon2_rect"]
+            _draw_log_output(buf, mx2, my2, mw2, mh2, fi + 3)
+
         # Agent pushing buttons (standing near panel)
         if width >= 40:
             agent = BUTTON_PUSH[fi % len(BUTTON_PUSH)]
@@ -141,15 +148,6 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
                 buf.set_pixel(shaft_x, gear_y + gear.height + dy, IRON_DARK)
                 buf.set_pixel(shaft_x + 1, gear_y + gear.height + dy, IRON_BLOCK)
             buf.draw_sprite(gear, gear_x, gear_y)
-
-        # Log on monitor 1
-        mx1, my1, mw1, mh1 = layout["mon1_rect"]
-        _draw_log_output(buf, mx1, my1, mw1, mh1, fi)
-
-        # Log on monitor 2
-        if width >= 60:
-            mx2, my2, mw2, mh2 = layout["mon2_rect"]
-            _draw_log_output(buf, mx2, my2, mw2, mh2, fi + 3)
 
         # Progress bar at bottom
         if width >= 40:
