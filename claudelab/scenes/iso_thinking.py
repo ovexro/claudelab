@@ -81,6 +81,17 @@ _BUBBLES = [_BUBBLE_DOTS, _BUBBLE_DOTS, _BUBBLE_QUESTION, _BUBBLE_ELLIPSIS,
             _BUBBLE_LIGHT, _BUBBLE_GEAR, _BUBBLE_DOTS, _BUBBLE_QUESTION]
 
 
+def _thinking_tint(buf: PixelBuffer) -> None:
+    """Apply a subtle purple tint to the whole frame for thinking identity."""
+    for y in range(buf.height):
+        for x in range(buf.width):
+            r, g, b = buf.get_pixel(x, y)
+            r = min(255, r + 5)
+            g = max(0, g - 3)
+            b = min(255, b + 8)
+            buf.set_pixel(x, y, (r, g, b))
+
+
 def get_frames(width: int, height: int) -> list[PixelBuffer]:
     pixel_h = height * 2
     frames: list[PixelBuffer] = []
@@ -118,5 +129,6 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             else:
                 buf.set_pixel(mx + 1, my + 1, MONITOR_BG)
 
+        _thinking_tint(buf)
         frames.append(buf)
     return frames

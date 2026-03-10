@@ -95,6 +95,18 @@ def _draw_code_on_monitor(
             buf.set_pixel(mx + dx, my + dy, row[dx])
 
 
+def _coding_tint(buf: PixelBuffer) -> None:
+    """Apply a subtle blue-green tint to the whole frame for coding identity."""
+    for y in range(buf.height):
+        for x in range(buf.width):
+            r, g, b = buf.get_pixel(x, y)
+            # Shift: slightly less red, slightly more green and blue
+            r = max(0, r - 4)
+            g = min(255, g + 3)
+            b = min(255, b + 6)
+            buf.set_pixel(x, y, (r, g, b))
+
+
 def get_frames(width: int, height: int) -> list[PixelBuffer]:
     pixel_h = height * 2
     frames: list[PixelBuffer] = []
@@ -131,5 +143,6 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             )
             buf.draw_sprite(agent2, ax2, ay2)
 
+        _coding_tint(buf)
         frames.append(buf)
     return frames

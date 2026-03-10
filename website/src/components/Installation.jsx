@@ -104,8 +104,8 @@ function Installation() {
               text="pip install claudelab"
               outputLines={[
                 { text: 'Collecting claudelab', type: 'term-output--dim' },
-                { text: '  Downloading claudelab-0.1.4-py3-none-any.whl', type: 'term-output--dim' },
-                { text: 'Successfully installed claudelab-0.1.4', type: 'term-output--success' },
+                { text: '  Downloading claudelab-0.1.5-py3-none-any.whl', type: 'term-output--dim' },
+                { text: 'Successfully installed claudelab-0.1.5', type: 'term-output--success' },
               ]}
             />
             <div className="term-spacer"></div>

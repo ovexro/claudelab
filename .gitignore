@@ -32,3 +32,4 @@ Desktop.ini
 .eslintcache
 .python-version
 node_modules/
+.claude/

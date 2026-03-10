@@ -68,6 +68,17 @@ def _draw_steam(buf: PixelBuffer, x: int, base_y: int, fi: int) -> None:
                 buf.set_pixel(px - 1, py, STEAM_FADE)
 
 
+def _idle_warm_tint(buf: PixelBuffer) -> None:
+    """Apply a subtle warm amber tint for idle/relaxed identity."""
+    for y in range(buf.height):
+        for x in range(buf.width):
+            r, g, b = buf.get_pixel(x, y)
+            r = min(255, r + 6)
+            g = min(255, g + 3)
+            b = max(0, b - 5)
+            buf.set_pixel(x, y, (r, g, b))
+
+
 def get_frames(width: int, height: int) -> list[PixelBuffer]:
     pixel_h = height * 2
     frames: list[PixelBuffer] = []
@@ -118,5 +129,6 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
                 bub_y = max(0, ay2 - _CHAT_2.height - 2)
                 buf.draw_sprite(_CHAT_2, ax2 + 14, bub_y)
 
+        _idle_warm_tint(buf)
         frames.append(buf)
     return frames

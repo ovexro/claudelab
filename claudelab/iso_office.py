@@ -28,6 +28,7 @@ from claudelab.palette import (
     CHAIR_DARK, CHAIR_HIGHLIGHT, CHAIR_SHADOW,
     BASEBOARD, BASEBOARD_DARK,
     KEYBOARD_DARK, KEYBOARD_KEY,
+    GOLD_BLOCK,
     GLOWSTONE, GLASS_PANE,
     COBBLESTONE,
     COFFEE_BROWN,
@@ -597,8 +598,8 @@ def _draw_bookcase(
     bx = cx - bk_w // 2
     by = cy - bk_h
 
-    # Main body (dark oak)
-    buf.fill_rect(bx, by, bk_w, bk_h, OAK_LOG)
+    # Main body (lighter birch to contrast against dark wall)
+    buf.fill_rect(bx, by, bk_w, bk_h, BIRCH_PLANK)
 
     # Shelves (horizontal lines) and books
     book_colors = [BOOK_RED, BOOK_BLUE, BOOK_GREEN, BOOK_YELLOW]
@@ -623,19 +624,18 @@ def _draw_keyboard(
     origin_x: int, origin_y: int,
     desk_h: int = 6,
 ) -> None:
-    """Draw a small keyboard on the desk surface (6x2 pixels)."""
+    """Draw a keyboard on the desk surface (8x3 pixels)."""
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
     # Keyboard sits on the desk surface, slightly in front of the monitor
     ky = cy - desk_h + 1
-    kx = cx - 3
+    kx = cx - 4
 
     # Keyboard body
-    buf.fill_rect(kx, ky, 6, 2, KEYBOARD_DARK)
-    # Key highlights (alternating pattern)
-    for dx in range(0, 6, 2):
-        buf.set_pixel(kx + dx, ky, KEYBOARD_KEY)
-    for dx in range(1, 6, 2):
-        buf.set_pixel(kx + dx, ky + 1, KEYBOARD_KEY)
+    buf.fill_rect(kx, ky, 8, 3, KEYBOARD_DARK)
+    # Key highlights (checkerboard pattern, 3 rows)
+    for row in range(3):
+        for dx in range((row + 1) % 2, 8, 2):
+            buf.set_pixel(kx + dx, ky + row, KEYBOARD_KEY)
 
 
 def _draw_coffee_mug(
@@ -644,18 +644,22 @@ def _draw_coffee_mug(
     origin_x: int, origin_y: int,
     desk_h: int = 6,
 ) -> None:
-    """Draw a tiny 3x3 coffee mug on the desk surface."""
+    """Draw a 4x5 coffee mug with handle on the desk surface."""
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
     # Place mug to the right side of the desk
     mx = cx + 3
-    my = cy - desk_h - 1
+    my = cy - desk_h - 3
 
-    # Mug body (3x3)
-    buf.fill_rect(mx, my, 3, 3, COFFEE_MUG)
-    # Coffee visible at top
-    buf.set_pixel(mx, my, COFFEE_BROWN)
-    buf.set_pixel(mx + 1, my, COFFEE_BROWN)
-    buf.set_pixel(mx + 2, my, COFFEE_BROWN)
+    # Mug body (4x5)
+    buf.fill_rect(mx, my, 4, 5, COFFEE_MUG)
+    # Coffee visible at top (2 rows)
+    for dx in range(4):
+        buf.set_pixel(mx + dx, my, COFFEE_BROWN)
+        buf.set_pixel(mx + dx, my + 1, COFFEE_BROWN)
+    # Handle on right side (2px tall arc)
+    buf.set_pixel(mx + 4, my + 1, COFFEE_MUG)
+    buf.set_pixel(mx + 4, my + 2, COFFEE_MUG)
+    buf.set_pixel(mx + 4, my + 3, COFFEE_MUG)
 
 
 def _draw_wall_clock(
@@ -696,24 +700,84 @@ def _draw_wall_clock(
     buf.set_pixel(clk_x + 2, clk_y + 1, CLOCK_HAND)
 
 
+def _draw_wall_poster(
+    buf: PixelBuffer,
+    grid_w: int,
+    origin_x: int, origin_y: int,
+    wall_h: int,
+) -> None:
+    """Draw a small framed poster/painting on the back wall, left of window."""
+    # Position: left side of back wall, ~25% along the width
+    poster_gx = grid_w * 0.25
+    cx, cy = iso_to_screen(poster_gx, 0, origin_x, origin_y)
+    pw, ph = 7, 6
+    px = cx - pw // 2
+    py = cy - int(wall_h * 0.65) - ph // 2
+
+    # Frame (golden border)
+    buf.fill_rect(px - 1, py - 1, pw + 2, ph + 2, (180, 150, 80))
+    # Canvas interior — a simple landscape
+    buf.fill_rect(px, py, pw, ph, (60, 100, 160))  # sky blue
+    # Green hills at bottom
+    for dx in range(pw):
+        buf.set_pixel(px + dx, py + ph - 1, (50, 130, 50))
+        buf.set_pixel(px + dx, py + ph - 2, (60, 150, 60))
+    # Sun
+    buf.set_pixel(px + 1, py + 1, (255, 220, 80))
+    buf.set_pixel(px + 2, py + 1, (255, 220, 80))
+
+
+def _draw_wall_shelf(
+    buf: PixelBuffer,
+    grid_d: int,
+    origin_x: int, origin_y: int,
+    wall_h: int,
+) -> None:
+    """Draw a small shelf with items on the left wall."""
+    # Position: middle of left wall
+    shelf_gy = grid_d * 0.55
+    cx, cy = iso_to_screen(0, shelf_gy, origin_x, origin_y)
+    sw = 8
+    sh_y = cy - int(wall_h * 0.55)
+    sx = cx - sw // 2
+
+    # Shelf plank
+    for dx in range(sw):
+        buf.set_pixel(sx + dx, sh_y, OAK_PLANK_LIGHT)
+        buf.set_pixel(sx + dx, sh_y + 1, OAK_PLANK_DARK)
+    # Small plant/cactus on left
+    buf.set_pixel(sx + 1, sh_y - 1, LEAF_GREEN)
+    buf.set_pixel(sx + 1, sh_y - 2, LEAF_LIGHT)
+    buf.set_pixel(sx + 2, sh_y - 1, LEAF_GREEN)
+    # Small trophy/ornament on right
+    buf.set_pixel(sx + 5, sh_y - 1, GOLD_BLOCK)
+    buf.set_pixel(sx + 5, sh_y - 2, GOLD_BLOCK)
+    buf.set_pixel(sx + 6, sh_y - 1, GOLD_BLOCK)
+
+
 def _draw_paper_stack(
     buf: PixelBuffer,
     gx: float, gy: float,
     origin_x: int, origin_y: int,
     desk_h: int = 6,
 ) -> None:
-    """Draw a small stack of papers (4x3, slightly offset) on the desk."""
+    """Draw a stack of papers (5x4) with text lines on the desk."""
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
     # Place papers to the left side of the desk
-    px = cx - 5
-    py = cy - desk_h - 1
+    px = cx - 6
+    py = cy - desk_h - 2
 
-    # Bottom sheet (slightly offset right)
-    buf.fill_rect(px + 1, py + 1, 4, 3, PAPER_SHADOW)
-    # Middle sheet (slightly offset)
-    buf.fill_rect(px, py + 1, 4, 3, PAPER_SHADOW)
+    # Bottom sheet (offset for stacked look)
+    buf.fill_rect(px + 1, py + 2, 5, 4, PAPER_SHADOW)
+    # Middle sheet
+    buf.fill_rect(px + 1, py + 1, 5, 4, PAPER_SHADOW)
     # Top sheet
-    buf.fill_rect(px, py, 4, 3, PAPER_WHITE)
+    buf.fill_rect(px, py, 5, 4, PAPER_WHITE)
+    # Text lines on top sheet (tiny gray dashes)
+    for dy in range(3):
+        line_len = 3 if dy < 2 else 2
+        for dx in range(line_len):
+            buf.set_pixel(px + 1 + dx, py + dy, (180, 180, 185))
 
 
 def _draw_contact_shadow(
@@ -844,6 +908,12 @@ def build_iso_office(
 
     # Wall clock on back wall (to the right of window)
     _draw_wall_clock(buf, grid_w, origin_x, origin_y, wall_pixel_h)
+
+    # Wall poster on back wall (to the left of window)
+    _draw_wall_poster(buf, grid_w, origin_x, origin_y, wall_pixel_h)
+
+    # Wall shelf on left wall
+    _draw_wall_shelf(buf, grid_d, origin_x, origin_y, wall_pixel_h)
 
     # Draw floor
     _draw_floor(buf, grid_w, grid_d, origin_x, origin_y)
