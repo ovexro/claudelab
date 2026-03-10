@@ -131,7 +131,7 @@ function Installation() {
             </div>
             <TypedLine text="claudelab" delay={600} outputLines={[
               { text: '═══════════ AI ENGINEERING LAB ═══════════', type: 'term-output--amber' },
-              { text: 'Watching for Claude Code activity...', type: 'term-output--dim' },
+              { text: 'Isometric 2.5D office — watching for activity...', type: 'term-output--dim' },
             ]} />
           </TerminalBlock>
         </div>

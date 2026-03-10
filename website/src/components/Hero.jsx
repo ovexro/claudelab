@@ -60,7 +60,7 @@ function Hero() {
         Watch your AI engineers work<span className="cursor-blink">_</span>
       </h1>
       <p className="hero-subtitle">
-        A visual terminal companion for Claude Code
+        Isometric 2.5D terminal companion for Claude Code
       </p>
 
       {/* Animated Terminal */}

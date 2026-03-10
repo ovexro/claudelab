@@ -1028,37 +1028,37 @@ export const LOGO = [
 export const SCENES = {
   thinking: {
     name: 'Thinking', icon: '.o( ? )',
-    description: 'Claude is analyzing the problem, reading code, and planning the approach.',
+    description: 'Claude is analyzing the problem. Agent sits with animated thought bubbles in the isometric office.',
     trigger: 'Triggered when Claude reads files or formulates a plan',
     generateFrames: genThinking,
   },
   coding: {
     name: 'Coding', icon: '>>_',
-    description: 'Active code generation. Engineers typing simultaneously at their workstations.',
+    description: 'Active code generation. Two agents type at desks with scrolling code on isometric monitors.',
     trigger: 'Triggered when Claude writes or edits code files',
     generateFrames: genCoding,
   },
   debugging: {
     name: 'Debugging', icon: '/!\\',
-    description: 'Engineers at the whiteboard tracking bugs, examining error traces.',
+    description: 'Red-tinted office with whiteboard error diagrams. Agents point and examine bugs.',
     trigger: 'Triggered when Claude investigates errors or test failures',
     generateFrames: genDebugging,
   },
   running: {
     name: 'Running', icon: '[>>]',
-    description: 'Control panel activated, server rack blinking, progress bar advancing.',
+    description: 'Control panel with LED grid, rotating gears, and progress bar on the isometric floor.',
     trigger: 'Triggered when Claude runs shell commands or tests',
     generateFrames: genRunning,
   },
   building: {
     name: 'Building', icon: '\u2590\u2588\u258C',
-    description: 'Engineers carry code blocks along conveyor belt to the assembly platform.',
+    description: 'Conveyor belt with animated rollers carries colored code blocks across the diamond-tile floor.',
     trigger: 'Triggered when Claude runs build or compilation commands',
     generateFrames: genBuilding,
   },
   idle: {
     name: 'Idle', icon: '~\u2615~',
-    description: 'Coffee break. Engineers chat, relax, and sip coffee while waiting.',
+    description: 'Coffee break. Agent drinks coffee with rising steam while another leans back and chats.',
     trigger: 'Shown when Claude Code is idle or between tasks',
     generateFrames: genIdle,
   },

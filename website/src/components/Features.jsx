@@ -82,10 +82,10 @@ function Features() {
     <section className="section" id="features">
       <div className="section-header">
         <span className="section-label">// scenes</span>
-        <h2 className="section-title">Six Animated Office Scenes</h2>
+        <h2 className="section-title">Six Isometric Office Scenes</h2>
         <p className="section-subtitle">
           Each scene activates automatically based on what Claude Code is doing.
-          Watch your AI engineers think, code, debug, and build in real time.
+          Watch your AI engineers think, code, debug, and build in an isometric 2.5D office.
         </p>
       </div>
 
