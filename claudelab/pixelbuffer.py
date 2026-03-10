@@ -113,6 +113,21 @@ class PixelBuffer:
             for x in range(min(self.width, other.width)):
                 dst[x] = row[x]
 
+    def upscale(self, factor: int = 4) -> PixelBuffer:
+        """Return a new PixelBuffer scaled up by *factor* (nearest-neighbor)."""
+        new_w = self.width * factor
+        new_h = self.height * factor
+        out = PixelBuffer(new_w, new_h, self._bg)
+        for y in range(self.height):
+            row = self.pixels[y]
+            for x in range(self.width):
+                c = row[x]
+                for dy in range(factor):
+                    out_row = out.pixels[y * factor + dy]
+                    for dx in range(factor):
+                        out_row[x * factor + dx] = c
+        return out
+
     def render_to_halfblocks(self) -> list[str]:
         """Render the pixel buffer to ANSI-colored half-block strings.
 

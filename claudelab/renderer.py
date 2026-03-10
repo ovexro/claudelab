@@ -194,12 +194,9 @@ class Renderer:
             if self.iso:
                 self._cached_frames = get_iso_scene_frames(activity, width, height)
             elif self.voxel:
-                # Sixel renders at higher resolution (4x)
                 if self.sixel:
-                    scale = 4
-                    self._cached_frames = get_voxel_scene_frames(
-                        activity, width * scale, height * scale
-                    )
+                    # Render at normal resolution, then upscale for sixel
+                    self._cached_frames = get_iso_scene_frames(activity, width, height)
                 else:
                     self._cached_frames = get_voxel_scene_frames(activity, width, height)
             else:
@@ -303,7 +300,8 @@ class Renderer:
                 # Encode PixelBuffer to sixel (cached per frame index)
                 if fidx not in self._sixel_cache:
                     encoder = self._get_sixel_encoder()
-                    self._sixel_cache[fidx] = encoder.encode_from_buffer(frame)
+                    upscaled = frame.upscale(4)
+                    self._sixel_cache[fidx] = encoder.encode_from_buffer(upscaled)
                 sixel_str = self._sixel_cache[fidx]
 
                 # Flush title via curses
