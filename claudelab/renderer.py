@@ -93,7 +93,7 @@ def _draw_scene_ascii(
             break
         r = start_row + i
         try:
-            text = row_text[:width]
+            text = row_text[:width].ljust(width)
             stdscr.addnstr(r, 0, text, width, base_pair)
         except curses.error:
             pass
@@ -107,11 +107,13 @@ def _draw_scene_voxel(
 ) -> None:
     """Write pre-rendered ANSI half-block lines directly to stdout."""
     out = sys.stdout
+    parts: list[str] = []
     for i, line in enumerate(ansi_lines):
         if i >= max_rows:
             break
         # Move cursor to position and write the ANSI line
-        out.write(f"\x1b[{start_row + i + 1};1H{line}")
+        parts.append(f"\x1b[{start_row + i + 1};1H{line}\x1b[0m")
+    out.write("".join(parts))
     out.flush()
 
 
@@ -285,8 +287,10 @@ class Renderer:
             frame = all_frames[fidx]
             self._frame_idx += 1
 
-            # -- draw --
-            self.stdscr.erase()
+            # -- draw (synchronized output to prevent flicker) --
+            out = sys.stdout
+            out.write("\x1b[?2026h")  # Begin synchronized update
+            out.flush()
 
             _draw_title(self.stdscr, width)
 
@@ -324,6 +328,9 @@ class Renderer:
                 _draw_status(self.stdscr, height - 1, width, activity)
                 self.stdscr.noutrefresh()
                 curses.doupdate()
+
+            out.write("\x1b[?2026l")  # End synchronized update
+            out.flush()
 
             # -- timing --
             elapsed = time.monotonic() - t0
