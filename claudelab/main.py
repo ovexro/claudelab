@@ -5,8 +5,10 @@ AI "engineers" working while Claude Code runs.
 
 Usage
 -----
-    claudelab              # after pip install
-    python -m claudelab    # direct invocation
+    claudelab              # run the companion (after install)
+    claudelab install      # auto-configure hooks
+    claudelab doctor       # diagnose issues
+    claudelab uninstall    # remove hooks
 
 Flags
 -----
@@ -26,11 +28,24 @@ from claudelab.detector import get_current_activity, start_detection, stop_detec
 from claudelab.renderer import Renderer
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="claudelab",
         description="A visual terminal companion for Claude Code",
     )
+
+    sub = parser.add_subparsers(dest="command")
+
+    # install
+    sub.add_parser("install", help="Auto-configure Claude Code hooks")
+
+    # doctor
+    sub.add_parser("doctor", help="Diagnose ClaudeLab setup issues")
+
+    # uninstall
+    sub.add_parser("uninstall", help="Remove ClaudeLab hooks")
+
+    # run flags (default command)
     parser.add_argument(
         "--theme",
         choices=["dark", "light"],
@@ -54,7 +69,8 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="auto",
         help="Rendering mode (default: auto). iso=isometric 3D, sixel=pixel graphics, voxel=half-block, ascii=classic",
     )
-    return parser.parse_args(argv)
+
+    return parser
 
 
 def _curses_main(stdscr: curses.window, args: argparse.Namespace, mode: str) -> None:
@@ -96,10 +112,8 @@ def _resolve_mode(renderer_arg: str) -> str:
     return renderer_arg  # "voxel" or "ascii"
 
 
-def main(argv: list[str] | None = None) -> None:
-    """Entry point for ``claudelab`` console script."""
-    args = _parse_args(argv)
-
+def _run_tui(args: argparse.Namespace) -> None:
+    """Launch the terminal UI."""
     # Resolve renderer mode before curses init (sixel detection needs raw terminal)
     mode = _resolve_mode(args.renderer)
 
@@ -119,6 +133,24 @@ def main(argv: list[str] | None = None) -> None:
         stop_detection()
         # Ensure terminal is left in a clean state
         print("\nClaudeLab stopped.", file=sys.stderr)
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Entry point for ``claudelab`` console script."""
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    if args.command == "install":
+        from claudelab.cli import cmd_install
+        sys.exit(cmd_install())
+    elif args.command == "doctor":
+        from claudelab.cli import cmd_doctor
+        sys.exit(cmd_doctor())
+    elif args.command == "uninstall":
+        from claudelab.cli import cmd_uninstall
+        sys.exit(cmd_uninstall())
+    else:
+        _run_tui(args)
 
 
 if __name__ == "__main__":

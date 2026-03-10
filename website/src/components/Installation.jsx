@@ -90,86 +90,88 @@ function Installation() {
         <span className="section-label">// install</span>
         <h2 className="section-title">Get Up and Running in 60 Seconds</h2>
         <p className="section-subtitle">
-          Zero dependencies. Just pip install and go.
+          Zero dependencies. Two commands. No manual config.
         </p>
       </div>
 
       <div className={`install-grid ${isVisible ? 'install-grid--visible' : ''}`}>
-        {/* Step 1: Install */}
+        {/* Step 1: Install & Setup */}
         <div className="install-step">
           <div className="step-number">01</div>
-          <h3 className="step-title">Install ClaudeLab</h3>
+          <h3 className="step-title">Install & Auto-Configure</h3>
           <TerminalBlock title="terminal">
             <TypedLine
               text="pip install claudelab"
               outputLines={[
                 { text: 'Collecting claudelab', type: 'term-output--dim' },
                 { text: '  Downloading claudelab-0.1.0-py3-none-any.whl', type: 'term-output--dim' },
-                { text: 'Installing collected packages: claudelab', type: 'term-output--dim' },
                 { text: 'Successfully installed claudelab-0.1.0', type: 'term-output--success' },
               ]}
             />
+            <div className="term-spacer"></div>
+            <TypedLine
+              text="claudelab install"
+              delay={1200}
+              outputLines={[
+                { text: '[1/4] Found hook script: ~/.local/.../claudelab-hook.sh', type: 'term-output--dim' },
+                { text: '[2/4] Hook script already executable', type: 'term-output--dim' },
+                { text: '[3/4] Added hooks to ~/.claude/settings.json', type: 'term-output--dim' },
+                { text: '[4/4] State file OK', type: 'term-output--dim' },
+                { text: '', type: '' },
+                { text: 'ClaudeLab installed successfully!', type: 'term-output--success' },
+              ]}
+            />
           </TerminalBlock>
+          <p className="step-note">
+            <span className="note-label">That{"'"}s it.</span> The install command auto-detects the hook script,
+            configures Claude Code hooks, and verifies everything works. No manual JSON editing needed.
+          </p>
         </div>
 
-        {/* Step 2: tmux Setup */}
+        {/* Step 2: Run */}
         <div className="install-step">
           <div className="step-number">02</div>
-          <h3 className="step-title">Split Your Terminal with tmux</h3>
+          <h3 className="step-title">Run in a Side Pane</h3>
           <TerminalBlock title="terminal — tmux setup">
             <div className="term-line">
-              <span className="term-comment"># Start a new tmux session</span>
+              <span className="term-comment"># Start a tmux session and split (Ctrl+b then %)</span>
             </div>
             <TypedLine text="tmux new-session -s claude" delay={200} />
             <div className="term-spacer"></div>
             <div className="term-line">
-              <span className="term-comment"># Split the pane (Ctrl+b then %)</span>
-            </div>
-            <div className="term-spacer"></div>
-            <div className="term-line">
-              <span className="term-comment"># In the right pane, run ClaudeLab:</span>
+              <span className="term-comment"># In the side pane, run ClaudeLab:</span>
             </div>
             <TypedLine text="claudelab" delay={600} outputLines={[
               { text: '═══════════ AI ENGINEERING LAB ═══════════', type: 'term-output--amber' },
               { text: 'Isometric 2.5D office — watching for activity...', type: 'term-output--dim' },
             ]} />
+            <div className="term-spacer"></div>
+            <div className="term-line">
+              <span className="term-comment"># Use Claude Code in the other pane — ClaudeLab reacts live!</span>
+            </div>
           </TerminalBlock>
         </div>
 
-        {/* Step 3: Hooks */}
+        {/* Bonus: Troubleshooting */}
         <div className="install-step">
-          <div className="step-number">03</div>
-          <h3 className="step-title">Configure Claude Code Hooks</h3>
-          <TerminalBlock title="~/.claude/settings.json">
-            <pre className="term-json">{`{
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "/path/to/claudelab-hook.sh"
-      }]
-    }],
-    "PostToolUse": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "/path/to/claudelab-hook.sh"
-      }]
-    }],
-    "PostToolUseFailure": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "/path/to/claudelab-hook.sh"
-      }]
-    }]
-  }
-}`}</pre>
+          <div className="step-number">++</div>
+          <h3 className="step-title">Built-in Diagnostics</h3>
+          <TerminalBlock title="terminal">
+            <TypedLine
+              text="claudelab doctor"
+              outputLines={[
+                { text: '[ OK ] Hook script: ~/.local/.../claudelab-hook.sh', type: 'term-output--success' },
+                { text: '[ OK ] Hooks configured in Claude Code settings', type: 'term-output--success' },
+                { text: '[ OK ] State file: /tmp/claudelab.state (value=\'coding\', 2s ago)', type: 'term-output--success' },
+                { text: '[ OK ] Python 3.12.3', type: 'term-output--success' },
+                { text: '', type: '' },
+                { text: 'All checks passed! ClaudeLab is ready.', type: 'term-output--success' },
+              ]}
+            />
           </TerminalBlock>
           <p className="step-note">
-            <span className="note-label">Note:</span> Hooks let Claude Code notify
-            ClaudeLab what it is doing, so the right scene plays automatically.
+            <span className="note-label">Something wrong?</span> Run <code>claudelab doctor</code> to
+            diagnose hook config, permissions, state file freshness, and more. It tells you exactly what to fix.
           </p>
         </div>
       </div>

@@ -11,10 +11,9 @@
 #   2. Add hooks to ~/.claude/settings.json (see README.md for full config)
 # ──────────────────────────────────────────────────────────────────────
 
-STATE_DIR="${HOME}/.claudelab"
-STATE_FILE="${STATE_DIR}/state"
-
-mkdir -p "${STATE_DIR}"
+# Shared state file in /tmp -- works regardless of which user runs Claude Code
+# vs ClaudeLab (no $HOME mismatch issues).
+STATE_FILE="/tmp/claudelab.state"
 
 write_state() {
     # Atomic write via temp file to prevent corruption from concurrent calls

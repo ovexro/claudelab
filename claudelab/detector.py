@@ -39,7 +39,13 @@ VALID_ACTIVITIES = frozenset(
 )
 DEFAULT_ACTIVITY = "idle"
 
-STATE_FILE = Path.home() / ".claudelab" / "state"
+# Shared state file in /tmp — works regardless of which user runs Claude Code
+# vs ClaudeLab (avoids the root-vs-user $HOME mismatch).
+STATE_FILE = Path("/tmp/claudelab.state")
+
+# Legacy path for backwards compatibility
+_LEGACY_STATE_FILE = Path.home() / ".claudelab" / "state"
+
 CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
 
 # Timeouts (seconds)
@@ -133,21 +139,26 @@ def stop_detection() -> None:
 # ---------------------------------------------------------------------------
 
 def _read_state_file() -> str | None:
-    """Read the hook-written state file and return the activity if fresh."""
-    try:
-        if not STATE_FILE.exists():
-            return None
-        stat = STATE_FILE.stat()
-        age = time.time() - stat.st_mtime
-        if age > _IDLE_TIMEOUT:
-            return "idle"
-        if age > _THINKING_TIMEOUT:
-            return "thinking"
-        text = STATE_FILE.read_text().strip().lower()
-        if text in VALID_ACTIVITIES:
-            return text
-    except OSError:
-        pass
+    """Read the hook-written state file and return the activity if fresh.
+
+    Checks the primary path (/tmp/claudelab.state) first, then falls
+    back to the legacy path (~/.claudelab/state) for backwards compat.
+    """
+    for path in (STATE_FILE, _LEGACY_STATE_FILE):
+        try:
+            if not path.exists():
+                continue
+            st = path.stat()
+            age = time.time() - st.st_mtime
+            if age > _IDLE_TIMEOUT:
+                continue  # stale, try next
+            if age > _THINKING_TIMEOUT:
+                return "thinking"
+            text = path.read_text().strip().lower()
+            if text in VALID_ACTIVITIES:
+                return text
+        except OSError:
+            continue
     return None
 
 

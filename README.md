@@ -40,11 +40,14 @@ The default `auto` mode selects isometric for capable terminals, falling back to
 - **Smooth animation** at configurable FPS (default 8)
 - **Terminal resize** handled gracefully
 
-## Installation
+## Quick Start
 
 ```bash
 pip install claudelab
+claudelab install
 ```
+
+That's it. The `install` command auto-detects the hook script, configures Claude Code hooks in `~/.claude/settings.json`, and verifies everything works. No manual JSON editing needed.
 
 Or install from source:
 
@@ -52,6 +55,7 @@ Or install from source:
 git clone https://github.com/ovexro/claudelab.git
 cd claudelab
 pip install -e .
+claudelab install
 ```
 
 ## Usage
@@ -83,42 +87,25 @@ tmux split-window -h 'claudelab'
 
 ### CLI Options
 
-| Flag | Default | Description |
-|------|---------|-------------|
+| Flag / Command | Default | Description |
+|----------------|---------|-------------|
+| `claudelab install` | | Auto-configure Claude Code hooks |
+| `claudelab doctor` | | Diagnose setup issues |
+| `claudelab uninstall` | | Remove hooks cleanly |
 | `--renderer {auto,iso,sixel,voxel,ascii}` | `auto` | Rendering mode |
 | `--theme {dark,light}` | `dark` | Colour theme |
 | `--fps N` | `8` | Animation frame rate (1-30) |
 | `--demo` | off | Cycle through all scenes automatically |
 
-## Hook Setup (Recommended)
+### Troubleshooting
 
-For real-time activity detection, set up the ClaudeLab hook:
-
-1. Find the hook script:
+If something isn't working, run the built-in diagnostics:
 
 ```bash
-HOOK_PATH="$(python -c 'import claudelab, pathlib; print(pathlib.Path(claudelab.__file__).parent.parent / "hooks" / "claudelab-hook.sh")')"
+claudelab doctor
 ```
 
-2. Add hooks to `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/claudelab-hook.sh" }] }
-    ],
-    "PostToolUse": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/claudelab-hook.sh" }] }
-    ],
-    "PostToolUseFailure": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/claudelab-hook.sh" }] }
-    ]
-  }
-}
-```
-
-Replace `/path/to/claudelab-hook.sh` with the actual path. Restart Claude Code.
+It checks hook configuration, permissions, state file freshness, Python version, and terminal capabilities — and tells you exactly what to fix.
 
 ## How It Works
 
@@ -132,7 +119,7 @@ The isometric office dynamically sizes its diamond-tile floor grid to fill the t
 
 ### Activity Detection Priority
 
-1. **Hook state file** (`~/.claudelab/state`) -- written by the hook script on every tool use. Most reliable.
+1. **Hook state file** (`/tmp/claudelab.state`) -- written by the hook script on every tool use. Most reliable.
 2. **JSONL log scanning** -- parses Claude Code's log files for recent tool use entries.
 3. **inotify** -- watches the working directory for filesystem changes and infers activity.
 4. **Timeouts** -- falls back to "thinking" after 10s, "idle" after 60s.
