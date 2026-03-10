@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claudelab"
-version = "0.1.0"
+version = "0.1.1"
 description = "A visual terminal companion for Claude Code — animated isometric 2.5D office with AI engineers working"
 readme = "README.md"
 license = {text = "MIT"}
