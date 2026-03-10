@@ -18,6 +18,7 @@ import datetime
 from claudelab.palette import (
     STONE, STONE_DARK, STONE_LIGHT, STONE_HIGHLIGHT,
     OAK_PLANK, OAK_PLANK_DARK, OAK_PLANK_LIGHT, OAK_LOG,
+    DESK_TOP, DESK_TOP_LIGHT, DESK_TOP_DARK, DESK_EDGE,
     IRON_BLOCK, IRON_DARK,
     MONITOR_BG, MONITOR_FRAME, MONITOR_GLOW,
     LED_GREEN, LED_AMBER, LED_OFF,
@@ -327,7 +328,7 @@ def _draw_iso_desk(
     hw = int(TILE_W * 0.7)
     hh = TILE_H // 2
 
-    # Draw desk top surface
+    # Draw desk top surface — dark walnut to contrast with oak floor
     for dy in range(TILE_H):
         if dy < hh:
             span = (dy + 1) * hw // hh
@@ -337,26 +338,26 @@ def _draw_iso_desk(
             px = cx + dx
             py = top_y - hh + dy
             if dx < 0:
-                c = OAK_PLANK_LIGHT
+                c = DESK_TOP_LIGHT
             elif dx > 0:
-                c = OAK_PLANK_DARK
+                c = DESK_TOP_DARK
             else:
-                c = OAK_PLANK
+                c = DESK_TOP
             buf.set_pixel(px, py, c)
 
-    # Front edge thickness (2px)
-    for dy in range(1, 3):
+    # Front edge thickness (3px for more visibility)
+    for dy in range(1, 4):
         for half_row in range(hh):
             span = (hh - half_row) * hw // hh
             y = top_y + half_row + dy
             # Right face of desk edge
             for dx in range(0, span):
-                buf.set_pixel(cx + dx, y, OAK_PLANK_DARK)
+                buf.set_pixel(cx + dx, y, DESK_TOP_DARK)
             # Left face
             for dx in range(-span + 1, 1):
-                buf.set_pixel(cx + dx, y, OAK_PLANK)
+                buf.set_pixel(cx + dx, y, DESK_EDGE)
 
-    # Legs (4 thin lines at corners)
+    # Legs (4 thin lines at corners, 2px wide)
     leg_positions = [
         (-hw + 2, -hh + 1),  # back-left
         (hw - 2, -hh + 1),   # back-right
@@ -366,8 +367,9 @@ def _draw_iso_desk(
     for lx, ly in leg_positions:
         leg_x = cx + lx
         leg_y = top_y + ly
-        for h in range(desk_h - 2):
-            buf.set_pixel(leg_x, leg_y + 2 + h, OAK_LOG)
+        for h in range(desk_h - 1):
+            buf.set_pixel(leg_x, leg_y + 2 + h, DESK_EDGE)
+            buf.set_pixel(leg_x + 1, leg_y + 2 + h, DESK_TOP_DARK)
 
 
 def _draw_iso_monitor(
@@ -381,17 +383,16 @@ def _draw_iso_monitor(
     base_y = cy - desk_h
 
     # Monitor is a rectangle facing the viewer (billboard style)
-    mon_w = 12
-    mon_h = 9
+    mon_w = 18
+    mon_h = 12
     mx = cx - mon_w // 2
     my = base_y - mon_h - 2  # above desk surface
 
-    # Stand
+    # Stand (wider base)
     buf.set_pixel(cx, base_y - 2, IRON_DARK)
     buf.set_pixel(cx, base_y - 1, IRON_DARK)
-    buf.set_pixel(cx - 1, base_y, IRON_DARK)
-    buf.set_pixel(cx, base_y, IRON_DARK)
-    buf.set_pixel(cx + 1, base_y, IRON_DARK)
+    for dx in range(-2, 3):
+        buf.set_pixel(cx + dx, base_y, IRON_DARK)
 
     # Frame
     buf.fill_rect(mx, my, mon_w, mon_h, MONITOR_FRAME)
@@ -410,34 +411,42 @@ def _draw_iso_chair(
     gx: float, gy: float,
     origin_x: int, origin_y: int,
 ) -> None:
-    """Draw an isometric office chair."""
+    """Draw an isometric office chair — bigger and more visible."""
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
 
-    # Seat (small diamond, 2px above floor)
-    seat_y = cy - 3
-    seat_hw = 4
-    seat_hh = 2
-    for dy in range(4):
+    # Seat (wider diamond, 4px above floor)
+    seat_y = cy - 4
+    seat_hw = 6
+    seat_hh = 3
+    for dy in range(6):
         if dy < seat_hh:
             span = (dy + 1) * seat_hw // seat_hh
         else:
-            span = (4 - dy) * seat_hw // seat_hh
+            span = (6 - dy) * seat_hw // seat_hh
         for dx in range(-span + 1, span):
             c = CHAIR_HIGHLIGHT if dx < 0 else CHAIR_DARK
             buf.set_pixel(cx + dx, seat_y - seat_hh + dy, c)
 
-    # Back rest (vertical rectangle behind seat)
-    back_x = cx - 2
-    back_y = seat_y - seat_hh - 4
-    buf.fill_rect(back_x, back_y, 3, 4, CHAIR_DARK)
-    buf.set_pixel(back_x, back_y, CHAIR_HIGHLIGHT)
+    # Back rest (wider, taller rectangle behind seat)
+    back_x = cx - 3
+    back_y = seat_y - seat_hh - 6
+    buf.fill_rect(back_x, back_y, 5, 6, CHAIR_DARK)
+    # Highlight left edge and top
+    for dy in range(6):
+        buf.set_pixel(back_x, back_y + dy, CHAIR_HIGHLIGHT)
+    for dx in range(5):
+        buf.set_pixel(back_x + dx, back_y, CHAIR_HIGHLIGHT)
 
-    # Center post
+    # Center post (2px wide)
+    buf.set_pixel(cx, cy - 2, CHAIR_SHADOW)
     buf.set_pixel(cx, cy - 1, CHAIR_SHADOW)
-    # Wheel base
-    buf.set_pixel(cx - 2, cy, CHAIR_SHADOW)
-    buf.set_pixel(cx, cy, CHAIR_SHADOW)
-    buf.set_pixel(cx + 2, cy, CHAIR_SHADOW)
+    buf.set_pixel(cx + 1, cy - 2, CHAIR_SHADOW)
+    buf.set_pixel(cx + 1, cy - 1, CHAIR_SHADOW)
+    # Wheel base (wider star shape)
+    for dx in [-3, -1, 0, 1, 3]:
+        buf.set_pixel(cx + dx, cy, CHAIR_SHADOW)
+    buf.set_pixel(cx - 2, cy + 1, CHAIR_SHADOW)
+    buf.set_pixel(cx + 2, cy + 1, CHAIR_SHADOW)
 
 
 def _draw_iso_server_rack(
@@ -478,17 +487,23 @@ def _draw_iso_plant(
     origin_x: int, origin_y: int,
     fi: int,
 ) -> None:
-    """Draw a potted plant in isometric view with 4-position smooth sway."""
+    """Draw a larger potted plant in isometric view with smooth sway."""
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
 
-    # Pot
-    buf.fill_rect(cx - 2, cy - 3, 5, 3, POT_TERRACOTTA)
-    buf.set_pixel(cx - 2, cy - 3, (160, 85, 50))  # shadow
+    # Pot (bigger — 7x5)
+    buf.fill_rect(cx - 3, cy - 4, 7, 4, POT_TERRACOTTA)
+    # Pot rim
+    buf.fill_rect(cx - 4, cy - 5, 9, 1, POT_TERRACOTTA)
+    # Pot shadow
+    buf.set_pixel(cx - 3, cy - 4, (150, 80, 45))
+    buf.set_pixel(cx - 3, cy - 3, (150, 80, 45))
+    # Soil
+    buf.fill_rect(cx - 2, cy - 5, 5, 1, (80, 55, 35))
 
-    # Stem
-    buf.set_pixel(cx, cy - 4, LEAF_DARK)
-    buf.set_pixel(cx, cy - 5, LEAF_DARK)
-    buf.set_pixel(cx, cy - 6, LEAF_DARK)
+    # Stem (taller)
+    for dy in range(5):
+        buf.set_pixel(cx, cy - 6 - dy, LEAF_DARK)
+        buf.set_pixel(cx + 1, cy - 6 - dy, LEAF_DARK)
 
     # Leaves — 4 smooth sway positions using fi % 16
     phase = fi % 16
@@ -501,13 +516,29 @@ def _draw_iso_plant(
     else:
         sway = -1
 
-    buf.set_pixel(cx - 1 + sway, cy - 7, LEAF_LIGHT)
-    buf.set_pixel(cx + sway, cy - 7, LEAF_GREEN)
-    buf.set_pixel(cx + 1 + sway, cy - 7, LEAF_GREEN)
-    buf.set_pixel(cx - 2 + sway, cy - 6, LEAF_GREEN)
-    buf.set_pixel(cx + 2 + sway, cy - 6, LEAF_DARK)
-    buf.set_pixel(cx - 1 + sway, cy - 5, LEAF_GREEN)
-    buf.set_pixel(cx + 1 + sway, cy - 5, LEAF_DARK)
+    # Large leaf canopy (much bigger)
+    leaf_base = cy - 11
+    # Top row
+    for dx in range(-1, 3):
+        buf.set_pixel(cx + dx + sway, leaf_base - 3, LEAF_LIGHT)
+    # Second row
+    for dx in range(-2, 4):
+        c = LEAF_LIGHT if dx < 1 else LEAF_GREEN
+        buf.set_pixel(cx + dx + sway, leaf_base - 2, c)
+    # Middle rows (widest)
+    for dy in range(-1, 2):
+        for dx in range(-3, 5):
+            if dx < 0:
+                c = LEAF_LIGHT
+            elif dx > 2:
+                c = LEAF_DARK
+            else:
+                c = LEAF_GREEN
+            buf.set_pixel(cx + dx + sway, leaf_base + dy, c)
+    # Bottom row
+    for dx in range(-2, 4):
+        c = LEAF_GREEN if dx < 2 else LEAF_DARK
+        buf.set_pixel(cx + dx + sway, leaf_base + 2, c)
 
 
 # ---------------------------------------------------------------------------
@@ -698,19 +729,16 @@ def _draw_contact_shadow(
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
     half_w = width // 2
 
-    # Shadow is 2 rows tall, oval shaped
-    for dy in range(2):
-        # Inner row is wider, outer row is narrower
-        span = half_w if dy == 0 else max(1, half_w - 1)
-        for dx in range(-span, span + 1):
-            px = cx + dx
-            py = cy + dy
-            # Darken existing pixel
-            r, g, b = buf.get_pixel(px, py)
-            r = max(0, r - 30)
-            g = max(0, g - 30)
-            b = max(0, b - 30)
-            buf.set_pixel(px, py, (r, g, b))
+    # Shadow is 1 row tall, subtle darkening
+    span = half_w
+    for dx in range(-span, span + 1):
+        px = cx + dx
+        py = cy
+        r, g, b = buf.get_pixel(px, py)
+        r = max(0, r - 12)
+        g = max(0, g - 12)
+        b = max(0, b - 12)
+        buf.set_pixel(px, py, (r, g, b))
 
 
 # ---------------------------------------------------------------------------
@@ -725,11 +753,13 @@ def iso_agent_pos(
     """Calculate screen position for a character sprite at grid (gx, gy).
 
     Returns (screen_x, screen_y) for the top-left of the sprite.
-    The sprite's feet will be roughly at the grid position.
+    The sprite's feet will be at the bottom of the tile diamond.
     """
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
-    # Center horizontally, feet at cy
-    return cx - 8, cy - sprite_h  # 8 = half of 16px sprite width
+    # Center horizontally, feet at the bottom of the diamond (cy + TILE_H//4)
+    # This anchors the agent to the floor surface properly
+    foot_y = cy + TILE_H // 4
+    return cx - 8, foot_y - sprite_h  # 8 = half of 16px sprite width
 
 
 # ---------------------------------------------------------------------------

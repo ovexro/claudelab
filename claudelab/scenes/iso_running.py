@@ -127,14 +127,20 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             )
             buf.draw_sprite(agent, ax, ay)
 
-        # Gear animation (on floor, right side)
+        # Gear animation — attached to server rack area (connected machinery)
         if width >= 55:
             gear = _GEAR_FRAMES[fi % len(_GEAR_FRAMES)]
-            gx, gy = iso_to_screen(
-                layout["grid_w"] - 2.0, layout["grid_d"] - 2.0,
-                ox, oy,
-            )
-            buf.draw_sprite(gear, gx - 4, gy - gear.height)
+            # Position near server rack (top-right of room)
+            rack_gx = layout["grid_w"] - 1.5
+            gx, gy = iso_to_screen(rack_gx, 0.5, ox, oy)
+            gear_x = gx - 4
+            gear_y = gy - gear.height + 2
+            # Draw connecting shaft (line from rack to gear)
+            shaft_x = gx
+            for dy in range(3):
+                buf.set_pixel(shaft_x, gear_y + gear.height + dy, IRON_DARK)
+                buf.set_pixel(shaft_x + 1, gear_y + gear.height + dy, IRON_BLOCK)
+            buf.draw_sprite(gear, gear_x, gear_y)
 
         # Log on monitor 1
         mx1, my1, mw1, mh1 = layout["mon1_rect"]

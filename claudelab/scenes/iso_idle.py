@@ -35,17 +35,16 @@ _CHAT_2 = Sprite.from_pixel_art([
 
 
 def _draw_steam(buf: PixelBuffer, x: int, base_y: int, fi: int) -> None:
-    """Draw rising steam particles with 8 unique patterns."""
-    # 8 different particle arrangements, one per frame
+    """Draw rising steam particles — bigger, brighter, more visible."""
     _patterns = [
-        [(0, 0), (1, -1), (-1, -2), (0, -3), (1, -4), (-1, -5)],
-        [(1, 0), (0, -1), (1, -2), (-1, -3), (0, -4), (1, -5)],
-        [(-1, 0), (1, -1), (0, -2), (1, -3), (-1, -4), (0, -5)],
-        [(0, 0), (-1, -1), (1, -2), (0, -3), (-1, -4), (1, -5)],
-        [(1, 0), (-1, -1), (0, -2), (-1, -3), (1, -4), (0, -5)],
-        [(-1, 0), (0, -1), (-1, -2), (1, -3), (0, -4), (-1, -5)],
-        [(0, 0), (1, -1), (0, -2), (-1, -3), (1, -4), (-1, -5)],
-        [(1, 0), (-1, -1), (1, -2), (0, -3), (-1, -4), (0, -5)],
+        [(0, 0), (1, -1), (-1, -2), (0, -3), (1, -4), (-1, -5), (0, -6), (1, -7)],
+        [(1, 0), (0, -1), (1, -2), (-1, -3), (0, -4), (1, -5), (-1, -6), (0, -7)],
+        [(-1, 0), (1, -1), (0, -2), (1, -3), (-1, -4), (0, -5), (1, -6), (-1, -7)],
+        [(0, 0), (-1, -1), (1, -2), (0, -3), (-1, -4), (1, -5), (0, -6), (-1, -7)],
+        [(1, 0), (-1, -1), (0, -2), (-1, -3), (1, -4), (0, -5), (-1, -6), (1, -7)],
+        [(-1, 0), (0, -1), (-1, -2), (1, -3), (0, -4), (-1, -5), (1, -6), (0, -7)],
+        [(0, 0), (1, -1), (0, -2), (-1, -3), (1, -4), (-1, -5), (0, -6), (1, -7)],
+        [(1, 0), (-1, -1), (1, -2), (0, -3), (-1, -4), (0, -5), (1, -6), (-1, -7)],
     ]
     particles = _patterns[fi % 8]
     phase = fi % 8
@@ -54,15 +53,19 @@ def _draw_steam(buf: PixelBuffer, x: int, base_y: int, fi: int) -> None:
         px = x + dx + ((phase + i) % 3 - 1)
         if py >= 0 and 0 <= px < buf.width:
             fade = abs(dy) + (phase // 2)
-            if fade < 2:
+            if fade < 3:
                 c = STEAM_WHITE
-            elif fade < 4:
+            elif fade < 6:
                 c = STEAM_FADE
             else:
-                c = (130, 130, 150)
+                c = (160, 160, 180)
+            # Draw 2px wide particles for visibility
             buf.set_pixel(px, py, c)
-            if px + 1 < buf.width and fade < 3:
-                buf.set_pixel(px + 1, py, STEAM_FADE if fade >= 1 else STEAM_WHITE)
+            if px + 1 < buf.width:
+                buf.set_pixel(px + 1, py, c)
+            # Extra bright core for lowest particles
+            if fade < 2 and px - 1 >= 0:
+                buf.set_pixel(px - 1, py, STEAM_FADE)
 
 
 def get_frames(width: int, height: int) -> list[PixelBuffer]:

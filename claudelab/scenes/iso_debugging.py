@@ -82,8 +82,8 @@ def _draw_error_monitor(buf: PixelBuffer, mx: int, my: int, mw: int, mh: int, fi
 
 
 def _draw_whiteboard(buf: PixelBuffer, x: int, y: int, w: int, h: int, fi: int) -> None:
-    """Draw whiteboard with error diagram on wall area."""
-    buf.fill_rect(x, y, w, h, BIRCH_PLANK)
+    """Draw whiteboard with error diagram on wall area — bright white surface."""
+    buf.fill_rect(x, y, w, h, (240, 240, 235))
     # Frame
     for dx in range(w):
         buf.set_pixel(x + dx, y, MONITOR_FRAME)
@@ -116,11 +116,11 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
         oy = layout["origin_y"]
         wall_h = layout["wall_h"]
 
-        # Whiteboard on wall area (above the floor)
-        wb_w = min(14, width // 5)
-        wb_h = min(8, wall_h - 2)
+        # Whiteboard on wall area (above the floor) — bigger and brighter
+        wb_w = min(20, width // 4)
+        wb_h = min(12, wall_h - 2)
         if wb_w >= 8 and wb_h >= 5:
-            # Position on back wall area
+            # Position on back wall area, centered
             wb_x = ox - wb_w // 2
             wb_y = max(1, oy - wall_h + 2)
             _draw_whiteboard(buf, wb_x, wb_y, wb_w, wb_h, fi)

@@ -6,38 +6,75 @@ from claudelab.palette import (
     CONVEYOR_GRAY, CONVEYOR_DARK, CONVEYOR_LIGHT,
     GOLD_BLOCK, LAPIS, REDSTONE, EMERALD, DIAMOND,
     PROGRESS_GREEN, PROGRESS_BG, PROGRESS_FRAME,
-    STONE_DARK, OUTLINE,
+    STONE_DARK, IRON_DARK, OUTLINE,
 )
 from claudelab.pixelbuffer import PixelBuffer, Sprite
 from claudelab.sprites import CARRYING, WALKING
-from claudelab.iso_office import build_iso_office, iso_to_screen, iso_agent_pos
+from claudelab.iso_office import build_iso_office, iso_to_screen, iso_agent_pos, TILE_W, TILE_H
 
 NUM_FRAMES = 8
 
 _BLOCK_COLORS = [GOLD_BLOCK, LAPIS, REDSTONE, EMERALD, DIAMOND]
 
 
-def _draw_conveyor(buf: PixelBuffer, x: int, y: int, w: int, fi: int) -> None:
-    """Draw animated conveyor belt — shifts every 2 frames for smoother motion."""
-    shift = fi // 2  # half speed: shifts only every 2 frames
-    for dx in range(w):
-        if (dx + shift) % 4 == 0:
-            c = CONVEYOR_DARK
-        elif (dx + shift) % 4 == 1:
-            c = CONVEYOR_LIGHT
-        else:
-            c = CONVEYOR_GRAY
-        buf.set_pixel(x + dx, y, c)
-        buf.set_pixel(x + dx, y + 1, CONVEYOR_GRAY if (dx + shift) % 4 != 0 else CONVEYOR_DARK)
-    # Side rails
-    for dx in range(w):
-        buf.set_pixel(x + dx, y - 1, STONE_DARK)
-        buf.set_pixel(x + dx, y + 2, STONE_DARK)
-    # Supports
-    for dx in range(0, w, 8):
-        for dy in range(3, 6):
-            buf.set_pixel(x + dx, y + dy, STONE_DARK)
-            buf.set_pixel(x + dx + 1, y + dy, STONE_DARK)
+def _draw_iso_conveyor(
+    buf: PixelBuffer,
+    ox: int, oy: int,
+    start_gx: float, gy: float,
+    length: int,
+    fi: int,
+) -> tuple[list[tuple[int, int]], int]:
+    """Draw an isometric conveyor belt along the grid X axis.
+
+    Returns list of (screen_x, screen_y) points along the belt for placing
+    blocks, and the belt height in pixels for placing agents above.
+    """
+    shift = fi // 2
+    belt_h = 3  # height of belt sides in pixels
+    points = []
+
+    for step in range(length):
+        gx = start_gx + step * 0.5
+        cx, cy = iso_to_screen(gx, gy, ox, oy)
+        cx2, cy2 = iso_to_screen(gx + 0.5, gy, ox, oy)
+        points.append((cx, cy))
+
+        # Draw belt surface segment (isometric strip)
+        dx = cx2 - cx
+        dy = cy2 - cy
+        steps = max(1, abs(dx))
+        for s in range(steps):
+            t = s / max(1, steps)
+            px = int(cx + t * dx)
+            py = int(cy + t * dy)
+            # Belt pattern — animated stripes
+            stripe = (s + shift) % 4
+            if stripe == 0:
+                c = CONVEYOR_DARK
+            elif stripe == 1:
+                c = CONVEYOR_LIGHT
+            else:
+                c = CONVEYOR_GRAY
+            # Belt is 3px wide perpendicular to direction
+            for bw in range(-1, 2):
+                buf.set_pixel(px + bw, py, c)
+            # Side walls
+            for bh in range(1, belt_h + 1):
+                buf.set_pixel(px - 2, py + bh, IRON_DARK)
+                buf.set_pixel(px + 2, py + bh, STONE_DARK)
+            # Rails on top edges
+            buf.set_pixel(px - 2, py, STONE_DARK)
+            buf.set_pixel(px + 2, py, STONE_DARK)
+
+    # Supports (legs) every few segments
+    for i in range(0, length, 3):
+        gx = start_gx + i * 0.5
+        cx, cy = iso_to_screen(gx, gy, ox, oy)
+        for bh in range(belt_h + 1, belt_h + 5):
+            buf.set_pixel(cx - 1, cy + bh, STONE_DARK)
+            buf.set_pixel(cx, cy + bh, STONE_DARK)
+
+    return points, belt_h
 
 
 _SHADOW_COLOR = (20, 20, 25)
@@ -71,49 +108,48 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
         buf, layout = build_iso_office(width, pixel_h, fi)
         ox = layout["origin_x"]
         oy = layout["origin_y"]
+        gw = layout["grid_w"]
+        gd = layout["grid_d"]
 
-        # Conveyor belt across the floor area
-        # Place it along the middle of the isometric floor
-        conv_w = min(width - 14, width * 2 // 3)
-        conv_x = (width - conv_w) // 2
-        # Position on the floor area
-        floor_screen_y = oy + (layout["grid_w"] + layout["grid_d"]) * 4 // 2
-        conv_y = min(floor_screen_y - 2, pixel_h - 10)
-        if conv_w >= 12:
-            _draw_conveyor(buf, conv_x, conv_y, conv_w, fi)
+        # Isometric conveyor belt running across the floor
+        conv_gy = max(2.0, gd * 0.6)  # Place in front half of room
+        conv_start_gx = 1.0
+        conv_len = max(4, gw - 2)  # segments (each 0.5 grid units)
+        points, belt_h = _draw_iso_conveyor(
+            buf, ox, oy, conv_start_gx, conv_gy, conv_len, fi,
+        )
 
-        # Carrier agent walking along conveyor
-        if conv_w >= 12:
+        # Carrier agent walking along the conveyor path
+        if points:
             carrier = CARRYING[fi % len(CARRYING)]
-            agent_x = conv_x + ((fi * 5) % max(1, conv_w - carrier.width))
-            agent_y = conv_y - carrier.height - 1
-            buf.draw_sprite(carrier, agent_x, agent_y)
+            idx = (fi * 2) % max(1, len(points))
+            px, py = points[idx]
+            buf.draw_sprite(carrier, px - carrier.width // 2, py - carrier.height - belt_h)
 
         # Second agent walking opposite direction
-        if width >= 55 and conv_w >= 12:
+        if width >= 55 and len(points) > 4:
             walker = WALKING[fi % len(WALKING)]
-            w_x = conv_x + conv_w - ((fi * 4) % max(1, conv_w - walker.width)) - walker.width
-            w_x = max(conv_x, w_x)
-            w_y = conv_y - walker.height - 1
-            buf.draw_sprite(walker, w_x, w_y)
+            idx2 = (len(points) - 1) - ((fi * 2) % max(1, len(points)))
+            idx2 = max(0, min(idx2, len(points) - 1))
+            px2, py2 = points[idx2]
+            buf.draw_sprite(walker, px2 - walker.width // 2, py2 - walker.height - belt_h)
 
-        # Code blocks on conveyor (moving at different speeds)
-        if conv_w >= 24:
-            _speeds = [3, 5, 4]  # different speed per block
-            for i in range(3):
+        # Code blocks on conveyor (moving along iso path)
+        if len(points) >= 6:
+            _speeds = [3, 5, 4]
+            for i in range(min(3, len(points) // 3)):
                 speed = _speeds[i]
-                bx = conv_x + 6 + ((fi * speed + i * 10) % max(1, conv_w - 10))
-                by = conv_y - 5
-                _draw_code_block(buf, bx, by, _BLOCK_COLORS[(fi + i) % len(_BLOCK_COLORS)])
+                bidx = (fi * speed + i * (len(points) // 3)) % len(points)
+                bx, by = points[bidx]
+                _draw_code_block(buf, bx - 2, by - 7, _BLOCK_COLORS[(fi + i) % len(_BLOCK_COLORS)])
 
-        # Block stack accumulating
-        if width >= 50:
-            stack_x = conv_x + conv_w + 2
-            stack_y = conv_y
+        # Block stack accumulating at end of conveyor
+        if points and width >= 50:
+            end_x, end_y = points[-1]
             stack_count = min(fi + 1, 4)
             for i in range(stack_count):
                 color = _BLOCK_COLORS[i % len(_BLOCK_COLORS)]
-                _draw_code_block(buf, stack_x, stack_y - i * 5, color)
+                _draw_code_block(buf, end_x + 4, end_y - i * 5 - 3, color)
 
         # Progress bar at bottom
         if width >= 40:
