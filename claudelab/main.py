@@ -110,6 +110,10 @@ def main(argv: list[str] | None = None) -> None:
         curses.wrapper(lambda stdscr: _curses_main(stdscr, args, mode))
     except KeyboardInterrupt:
         pass
+    except Exception as exc:
+        print(f"\nClaudeLab error: {exc}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
     finally:
         stop_detection()
         # Ensure terminal is left in a clean state
