@@ -5,6 +5,7 @@ from __future__ import annotations
 from claudelab.palette import (
     THOUGHT_CLOUD, THOUGHT_DARK, THOUGHT_LIGHT,
     WARNING_YELLOW, GLOWSTONE,
+    GEAR_PURPLE, GEAR_DARK, GEAR_LIGHT,
     MONITOR_TEXT_GREEN, MONITOR_BG,
 )
 from claudelab.pixelbuffer import PixelBuffer, Sprite
@@ -49,8 +50,35 @@ _BUBBLE_LIGHT = Sprite.from_pixel_art([
     "......OO....",
 ], {"O": THOUGHT_DARK, "L": THOUGHT_CLOUD, "G": GLOWSTONE, ".": None})
 
-_BUBBLES = [_BUBBLE_DOTS, _BUBBLE_DOTS, _BUBBLE_QUESTION, _BUBBLE_QUESTION,
-            _BUBBLE_LIGHT, _BUBBLE_LIGHT, _BUBBLE_DOTS, _BUBBLE_QUESTION]
+# Three dots "..." ellipsis inside the cloud
+_BUBBLE_ELLIPSIS = Sprite.from_pixel_art([
+    "....OOOOOO..",
+    "..OOLLLLLOO.",
+    ".OLLLLLLLLLO",
+    ".OLD.D.DLLO.",
+    ".OLLLLLLLLLO",
+    "..OOLLLLLOO.",
+    "....OOOOOO..",
+    ".....OO.....",
+    "......OO....",
+], {"O": THOUGHT_DARK, "L": THOUGHT_CLOUD, "D": THOUGHT_LIGHT, ".": None})
+
+# Small gear/cog symbol inside the cloud
+_BUBBLE_GEAR = Sprite.from_pixel_art([
+    "....OOOOOO..",
+    "..OOLLLLLOO.",
+    ".OLL.PP.LLO.",
+    ".OLLPppPLLO.",
+    ".OLL.PP.LLO.",
+    "..OOLLLLLOO.",
+    "....OOOOOO..",
+    ".....OO.....",
+    "......OO....",
+], {"O": THOUGHT_DARK, "L": THOUGHT_CLOUD, "P": GEAR_PURPLE, "p": GEAR_DARK, ".": None})
+
+# 8 unique bubbles per cycle: dots, dots, question, ellipsis, lightbulb, gear, dots, question
+_BUBBLES = [_BUBBLE_DOTS, _BUBBLE_DOTS, _BUBBLE_QUESTION, _BUBBLE_ELLIPSIS,
+            _BUBBLE_LIGHT, _BUBBLE_GEAR, _BUBBLE_DOTS, _BUBBLE_QUESTION]
 
 
 def get_frames(width: int, height: int) -> list[PixelBuffer]:

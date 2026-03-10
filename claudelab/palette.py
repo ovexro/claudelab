@@ -123,6 +123,14 @@ CHAIR_DARK = (60, 50, 40)
 CHAIR_SHADOW = (35, 28, 20)
 KEYBOARD_DARK = (55, 55, 60)
 KEYBOARD_KEY = (90, 90, 95)
+BOOK_RED = (180, 50, 40)
+BOOK_BLUE = (50, 70, 160)
+BOOK_GREEN = (50, 130, 60)
+BOOK_YELLOW = (200, 180, 50)
+PAPER_WHITE = (235, 235, 230)
+PAPER_SHADOW = (200, 200, 195)
+CLOCK_FACE = (230, 225, 210)
+CLOCK_HAND = (40, 40, 45)
 
 # ---------------------------------------------------------------------------
 # UI / effects

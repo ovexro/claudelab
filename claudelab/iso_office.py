@@ -30,6 +30,12 @@ from claudelab.palette import (
     GLOWSTONE, GLASS_PANE,
     COBBLESTONE,
     COFFEE_BROWN,
+    COFFEE_MUG,
+    BOOK_RED, BOOK_BLUE, BOOK_GREEN, BOOK_YELLOW,
+    PAPER_WHITE, PAPER_SHADOW,
+    CLOCK_FACE, CLOCK_HAND,
+    STAR,
+    BIRCH_PLANK,
 )
 from claudelab.pixelbuffer import PixelBuffer
 
@@ -451,15 +457,15 @@ def _draw_iso_server_rack(
     # Main body
     buf.fill_rect(rx, ry, rack_w, rack_h, IRON_DARK)
 
-    # Server units
+    # Server units with staggered LED phases
     for row in range(1, rack_h - 1, 2):
         buf.fill_rect(rx + 1, ry + row, rack_w - 2, 1, IRON_BLOCK)
-        # LEDs
-        led1 = (fi + row) % 4
-        led2 = (fi + row + 2) % 4
-        colors = [LED_GREEN, LED_AMBER, LED_GREEN, LED_OFF]
-        buf.set_pixel(rx + 1, ry + row, colors[led1])
-        buf.set_pixel(rx + rack_w - 2, ry + row, colors[led2])
+        # Staggered LEDs — each LED uses its own phase for more random patterns
+        led1_phase = (fi * 3 + row * 7 + 0 * 13) % 5
+        led2_phase = (fi * 3 + row * 7 + 1 * 13) % 5
+        colors = [LED_GREEN, LED_AMBER, LED_GREEN, LED_OFF, LED_AMBER]
+        buf.set_pixel(rx + 1, ry + row, colors[led1_phase])
+        buf.set_pixel(rx + rack_w - 2, ry + row, colors[led2_phase])
 
     # Top highlight
     for dx in range(rack_w):
@@ -472,7 +478,7 @@ def _draw_iso_plant(
     origin_x: int, origin_y: int,
     fi: int,
 ) -> None:
-    """Draw a potted plant in isometric view."""
+    """Draw a potted plant in isometric view with 4-position smooth sway."""
     cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
 
     # Pot
@@ -484,15 +490,227 @@ def _draw_iso_plant(
     buf.set_pixel(cx, cy - 5, LEAF_DARK)
     buf.set_pixel(cx, cy - 6, LEAF_DARK)
 
-    # Leaves (sway)
-    sway = 1 if fi % 8 < 4 else 0
+    # Leaves — 4 smooth sway positions using fi % 16
+    phase = fi % 16
+    if phase < 4:
+        sway = 0
+    elif phase < 8:
+        sway = 1
+    elif phase < 12:
+        sway = 0
+    else:
+        sway = -1
+
     buf.set_pixel(cx - 1 + sway, cy - 7, LEAF_LIGHT)
     buf.set_pixel(cx + sway, cy - 7, LEAF_GREEN)
-    buf.set_pixel(cx + 1, cy - 7, LEAF_GREEN)
+    buf.set_pixel(cx + 1 + sway, cy - 7, LEAF_GREEN)
     buf.set_pixel(cx - 2 + sway, cy - 6, LEAF_GREEN)
-    buf.set_pixel(cx + 2, cy - 6, LEAF_DARK)
-    buf.set_pixel(cx - 1, cy - 5, LEAF_GREEN)
-    buf.set_pixel(cx + 1, cy - 5, LEAF_DARK)
+    buf.set_pixel(cx + 2 + sway, cy - 6, LEAF_DARK)
+    buf.set_pixel(cx - 1 + sway, cy - 5, LEAF_GREEN)
+    buf.set_pixel(cx + 1 + sway, cy - 5, LEAF_DARK)
+
+
+# ---------------------------------------------------------------------------
+# New furniture
+# ---------------------------------------------------------------------------
+
+def _draw_window(
+    buf: PixelBuffer,
+    grid_w: int,
+    origin_x: int, origin_y: int,
+    wall_h: int,
+) -> None:
+    """Draw a rectangular window on the back wall showing sky color.
+
+    Centered on the back wall, approximately 10x8 pixels.
+    """
+    sky = _get_sky_color()
+    is_night = _get_sky_color() == SKY_NIGHT
+
+    # Find center of back wall — use midpoint of gx range at gy=0
+    mid_gx = grid_w / 2.0
+    cx, cy = iso_to_screen(mid_gx, 0, origin_x, origin_y)
+    # Window sits on the wall face, offset upward by ~60% of wall height
+    win_w = 10
+    win_h = 8
+    wx = cx - win_w // 2
+    wy = cy - int(wall_h * 0.7) - win_h // 2
+
+    # Frame (glass pane border)
+    buf.fill_rect(wx - 1, wy - 1, win_w + 2, win_h + 2, GLASS_PANE)
+    # Sky interior
+    buf.fill_rect(wx, wy, win_w, win_h, sky)
+
+    # Window cross-bar (frame detail)
+    for dx in range(win_w):
+        buf.set_pixel(wx + dx, wy + win_h // 2, GLASS_PANE)
+    for dy in range(win_h):
+        buf.set_pixel(wx + win_w // 2, wy + dy, GLASS_PANE)
+
+    # Night stars
+    if is_night:
+        buf.set_pixel(wx + 2, wy + 2, STAR)
+        buf.set_pixel(wx + 7, wy + 1, STAR)
+
+
+def _draw_bookcase(
+    buf: PixelBuffer,
+    gx: float, gy: float,
+    origin_x: int, origin_y: int,
+) -> None:
+    """Draw a tall narrow bookcase against the left wall (6px wide, 12px tall)."""
+    cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
+
+    bk_w = 6
+    bk_h = 12
+    bx = cx - bk_w // 2
+    by = cy - bk_h
+
+    # Main body (dark oak)
+    buf.fill_rect(bx, by, bk_w, bk_h, OAK_LOG)
+
+    # Shelves (horizontal lines) and books
+    book_colors = [BOOK_RED, BOOK_BLUE, BOOK_GREEN, BOOK_YELLOW]
+    for shelf_idx, shelf_y in enumerate(range(1, bk_h - 1, 3)):
+        # Shelf plank
+        for dx in range(bk_w):
+            buf.set_pixel(bx + dx, by + shelf_y + 2, OAK_PLANK_DARK)
+        # Book spines on this shelf (fill 2px tall rows above the shelf plank)
+        for book_x in range(1, bk_w - 1):
+            color = book_colors[(shelf_idx * 3 + book_x) % len(book_colors)]
+            buf.set_pixel(bx + book_x, by + shelf_y, color)
+            buf.set_pixel(bx + book_x, by + shelf_y + 1, color)
+
+    # Top edge highlight
+    for dx in range(bk_w):
+        buf.set_pixel(bx + dx, by, OAK_PLANK_LIGHT)
+
+
+def _draw_keyboard(
+    buf: PixelBuffer,
+    gx: float, gy: float,
+    origin_x: int, origin_y: int,
+    desk_h: int = 6,
+) -> None:
+    """Draw a small keyboard on the desk surface (6x2 pixels)."""
+    cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
+    # Keyboard sits on the desk surface, slightly in front of the monitor
+    ky = cy - desk_h + 1
+    kx = cx - 3
+
+    # Keyboard body
+    buf.fill_rect(kx, ky, 6, 2, KEYBOARD_DARK)
+    # Key highlights (alternating pattern)
+    for dx in range(0, 6, 2):
+        buf.set_pixel(kx + dx, ky, KEYBOARD_KEY)
+    for dx in range(1, 6, 2):
+        buf.set_pixel(kx + dx, ky + 1, KEYBOARD_KEY)
+
+
+def _draw_coffee_mug(
+    buf: PixelBuffer,
+    gx: float, gy: float,
+    origin_x: int, origin_y: int,
+    desk_h: int = 6,
+) -> None:
+    """Draw a tiny 3x3 coffee mug on the desk surface."""
+    cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
+    # Place mug to the right side of the desk
+    mx = cx + 3
+    my = cy - desk_h - 1
+
+    # Mug body (3x3)
+    buf.fill_rect(mx, my, 3, 3, COFFEE_MUG)
+    # Coffee visible at top
+    buf.set_pixel(mx, my, COFFEE_BROWN)
+    buf.set_pixel(mx + 1, my, COFFEE_BROWN)
+    buf.set_pixel(mx + 2, my, COFFEE_BROWN)
+
+
+def _draw_wall_clock(
+    buf: PixelBuffer,
+    grid_w: int,
+    origin_x: int, origin_y: int,
+    wall_h: int,
+) -> None:
+    """Draw a 5x5 wall clock on the back wall, to the right of the window."""
+    # Position: right side of back wall, ~75% along the width
+    clock_gx = grid_w * 0.75
+    cx, cy = iso_to_screen(clock_gx, 0, origin_x, origin_y)
+    # Offset up into the wall
+    clk_x = cx - 2
+    clk_y = cy - int(wall_h * 0.65) - 2
+
+    # Clock face (5x5 circle approximation — filled square with corner cutoffs)
+    buf.fill_rect(clk_x, clk_y, 5, 5, CLOCK_FACE)
+    # Cut corners for roundness
+    buf.set_pixel(clk_x, clk_y, STONE)
+    buf.set_pixel(clk_x + 4, clk_y, STONE)
+    buf.set_pixel(clk_x, clk_y + 4, STONE)
+    buf.set_pixel(clk_x + 4, clk_y + 4, STONE)
+
+    # Border ring (overwrite edges with darker tone)
+    for dx in range(1, 4):
+        buf.set_pixel(clk_x + dx, clk_y, CLOCK_HAND)
+        buf.set_pixel(clk_x + dx, clk_y + 4, CLOCK_HAND)
+    for dy in range(1, 4):
+        buf.set_pixel(clk_x, clk_y + dy, CLOCK_HAND)
+        buf.set_pixel(clk_x + 4, clk_y + dy, CLOCK_HAND)
+
+    # Center dot
+    buf.set_pixel(clk_x + 2, clk_y + 2, CLOCK_HAND)
+    # Hour hand (pointing up-right)
+    buf.set_pixel(clk_x + 3, clk_y + 1, CLOCK_HAND)
+    # Minute hand (pointing up)
+    buf.set_pixel(clk_x + 2, clk_y + 1, CLOCK_HAND)
+
+
+def _draw_paper_stack(
+    buf: PixelBuffer,
+    gx: float, gy: float,
+    origin_x: int, origin_y: int,
+    desk_h: int = 6,
+) -> None:
+    """Draw a small stack of papers (4x3, slightly offset) on the desk."""
+    cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
+    # Place papers to the left side of the desk
+    px = cx - 5
+    py = cy - desk_h - 1
+
+    # Bottom sheet (slightly offset right)
+    buf.fill_rect(px + 1, py + 1, 4, 3, PAPER_SHADOW)
+    # Middle sheet (slightly offset)
+    buf.fill_rect(px, py + 1, 4, 3, PAPER_SHADOW)
+    # Top sheet
+    buf.fill_rect(px, py, 4, 3, PAPER_WHITE)
+
+
+def _draw_contact_shadow(
+    buf: PixelBuffer,
+    gx: float, gy: float,
+    origin_x: int, origin_y: int,
+    width: int = 4,
+) -> None:
+    """Draw a contact shadow under furniture by darkening existing floor pixels.
+
+    Draws a small dark oval (2px tall) at the object's base position.
+    """
+    cx, cy = iso_to_screen(gx + 0.5, gy + 0.5, origin_x, origin_y)
+    half_w = width // 2
+
+    # Shadow is 2 rows tall, oval shaped
+    for dy in range(2):
+        # Inner row is wider, outer row is narrower
+        span = half_w if dy == 0 else max(1, half_w - 1)
+        for dx in range(-span, span + 1):
+            px = cx + dx
+            py = cy + dy
+            # Darken existing pixel
+            r, g, b = buf.get_pixel(px, py)
+            r = max(0, r - 30)
+            g = max(0, g - 30)
+            b = max(0, b - 30)
+            buf.set_pixel(px, py, (r, g, b))
 
 
 # ---------------------------------------------------------------------------
@@ -587,25 +805,63 @@ def build_iso_office(
     _draw_back_wall(buf, grid_w, grid_d, origin_x, origin_y, wall_pixel_h)
     _draw_left_wall(buf, grid_d, origin_x, origin_y, wall_pixel_h)
 
+    # Window on back wall (drawn over the wall)
+    _draw_window(buf, grid_w, origin_x, origin_y, wall_pixel_h)
+
+    # Wall clock on back wall (to the right of window)
+    _draw_wall_clock(buf, grid_w, origin_x, origin_y, wall_pixel_h)
+
     # Draw floor
     _draw_floor(buf, grid_w, grid_d, origin_x, origin_y)
 
     # -------------------------------------------------------------------
-    # Furniture — placed relative to grid, scales with room size
+    # Contact shadows — drawn on floor before furniture
     # -------------------------------------------------------------------
-    # Desk 1: near back-left
     desk1_gx = 1.0
     desk1_gy = 1.0
+    desk2_gx = min(grid_w - 2.0, max(3.0, grid_w * 0.5))
+    desk2_gy = 1.0
+    plant_gy = min(grid_d - 1.0, max(2.0, grid_d * 0.7))
+
+    # Shadows under desks
+    _draw_contact_shadow(buf, desk1_gx, desk1_gy, origin_x, origin_y, 5)
+    if width >= 50:
+        _draw_contact_shadow(buf, desk2_gx, desk2_gy, origin_x, origin_y, 5)
+    # Shadow under chairs
+    _draw_contact_shadow(buf, desk1_gx, desk1_gy + 1.2, origin_x, origin_y, 3)
+    if width >= 50:
+        _draw_contact_shadow(buf, desk2_gx, desk2_gy + 1.2, origin_x, origin_y, 3)
+    # Shadow under server rack
+    if width >= 50:
+        _draw_contact_shadow(buf, grid_w - 1.5, 0.5, origin_x, origin_y, 4)
+    # Shadow under plant
+    _draw_contact_shadow(buf, 0.0, plant_gy, origin_x, origin_y, 2)
+    # Shadow under bookcase
+    _draw_contact_shadow(buf, 0.0, 2.0, origin_x, origin_y, 3)
+    # Shadow under agent positions
+    _draw_contact_shadow(buf, desk1_gx, desk1_gy + 0.8, origin_x, origin_y, 3)
+    if width >= 50:
+        _draw_contact_shadow(buf, desk2_gx, desk2_gy + 0.8, origin_x, origin_y, 3)
+
+    # -------------------------------------------------------------------
+    # Furniture — placed relative to grid, scales with room size
+    # -------------------------------------------------------------------
+    # Bookcase against left wall (behind desks, at grid position 0,2)
+    _draw_bookcase(buf, 0.0, 2.0, origin_x, origin_y)
+
+    # Desk 1: near back-left
     _draw_iso_desk(buf, desk1_gx, desk1_gy, origin_x, origin_y)
     mon1_rect = _draw_iso_monitor(buf, desk1_gx, desk1_gy, origin_x, origin_y)
+    _draw_keyboard(buf, desk1_gx, desk1_gy, origin_x, origin_y)
+    _draw_coffee_mug(buf, desk1_gx, desk1_gy, origin_x, origin_y)
     _draw_iso_chair(buf, desk1_gx, desk1_gy + 1.2, origin_x, origin_y)
 
     # Desk 2: offset to the right
-    desk2_gx = min(grid_w - 2.0, max(3.0, grid_w * 0.5))
-    desk2_gy = 1.0
     if width >= 50:
         _draw_iso_desk(buf, desk2_gx, desk2_gy, origin_x, origin_y)
         mon2_rect = _draw_iso_monitor(buf, desk2_gx, desk2_gy, origin_x, origin_y)
+        _draw_keyboard(buf, desk2_gx, desk2_gy, origin_x, origin_y)
+        _draw_paper_stack(buf, desk2_gx, desk2_gy, origin_x, origin_y)
         _draw_iso_chair(buf, desk2_gx, desk2_gy + 1.2, origin_x, origin_y)
     else:
         mon2_rect = (0, 0, 0, 0)
@@ -617,7 +873,6 @@ def build_iso_office(
         )
 
     # Plant (front-left area)
-    plant_gy = min(grid_d - 1.0, max(2.0, grid_d * 0.7))
     _draw_iso_plant(buf, 0.0, plant_gy, origin_x, origin_y, frame_idx)
 
     # Build layout info for scenes to use

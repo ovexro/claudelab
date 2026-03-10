@@ -35,19 +35,34 @@ _CHAT_2 = Sprite.from_pixel_art([
 
 
 def _draw_steam(buf: PixelBuffer, x: int, base_y: int, fi: int) -> None:
-    """Draw rising steam particles."""
-    particles = [
-        (0, 0), (1, -1), (-1, -2), (0, -3), (1, -4), (-1, -5),
+    """Draw rising steam particles with 8 unique patterns."""
+    # 8 different particle arrangements, one per frame
+    _patterns = [
+        [(0, 0), (1, -1), (-1, -2), (0, -3), (1, -4), (-1, -5)],
+        [(1, 0), (0, -1), (1, -2), (-1, -3), (0, -4), (1, -5)],
+        [(-1, 0), (1, -1), (0, -2), (1, -3), (-1, -4), (0, -5)],
+        [(0, 0), (-1, -1), (1, -2), (0, -3), (-1, -4), (1, -5)],
+        [(1, 0), (-1, -1), (0, -2), (-1, -3), (1, -4), (0, -5)],
+        [(-1, 0), (0, -1), (-1, -2), (1, -3), (0, -4), (-1, -5)],
+        [(0, 0), (1, -1), (0, -2), (-1, -3), (1, -4), (-1, -5)],
+        [(1, 0), (-1, -1), (1, -2), (0, -3), (-1, -4), (0, -5)],
     ]
+    particles = _patterns[fi % 8]
+    phase = fi % 8
     for i, (dx, dy) in enumerate(particles):
-        py = base_y + dy - (fi % 4)
-        px = x + dx + ((fi + i) % 3 - 1)
+        py = base_y + dy - (phase // 2)
+        px = x + dx + ((phase + i) % 3 - 1)
         if py >= 0 and 0 <= px < buf.width:
-            fade = abs(dy) + (fi % 4)
-            c = STEAM_WHITE if fade < 3 else STEAM_FADE
+            fade = abs(dy) + (phase // 2)
+            if fade < 2:
+                c = STEAM_WHITE
+            elif fade < 4:
+                c = STEAM_FADE
+            else:
+                c = (130, 130, 150)
             buf.set_pixel(px, py, c)
-            if px + 1 < buf.width:
-                buf.set_pixel(px + 1, py, c if fade < 2 else STEAM_FADE)
+            if px + 1 < buf.width and fade < 3:
+                buf.set_pixel(px + 1, py, STEAM_FADE if fade >= 1 else STEAM_WHITE)
 
 
 def get_frames(width: int, height: int) -> list[PixelBuffer]:
@@ -71,9 +86,9 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             # Steam from mug
             _draw_steam(buf, ax + 12, ay - 2, fi)
 
-        # Agent 2 leaning / idle
+        # Agent 2 leaning / idle — slower breathing cycle (every 3 frames)
         if width >= 60:
-            if fi % 4 < 2:
+            if fi % 6 < 3:
                 agent2 = LEANING
             else:
                 agent2 = SITTING_IDLE_2

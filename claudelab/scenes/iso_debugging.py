@@ -40,13 +40,45 @@ def _selective_red_tint(buf: PixelBuffer) -> None:
 
 
 def _draw_error_monitor(buf: PixelBuffer, mx: int, my: int, mw: int, mh: int, fi: int) -> None:
-    """Fill monitor with error text."""
+    """Fill monitor with recognizable error patterns and warning triangles."""
     for dy in range(mh):
+        # Each line has an indent and varies in length to look like error text
+        indent = (dy * 3 + fi) % 3
+        line_len = max(1, mw - indent - ((dy + fi * 2) % 4))
         for dx in range(mw):
-            if (dx + fi) % 4 == 0:
-                buf.set_pixel(mx + dx, my + dy, MONITOR_TEXT_RED)
-            elif (dx + dy + fi) % 6 == 0:
-                buf.set_pixel(mx + dx, my + dy, WARNING_YELLOW)
+            if dx < indent:
+                continue  # indent space
+            if dx - indent >= line_len:
+                continue  # past end of line
+
+            # Every 3rd line is a warning triangle marker (yellow)
+            if dy % 3 == (fi % 3) and dx >= indent and dx < indent + 3:
+                # Small yellow warning: "! " pattern
+                if dx == indent:
+                    buf.set_pixel(mx + dx, my + dy, WARNING_YELLOW)
+                elif dx == indent + 1:
+                    buf.set_pixel(mx + dx, my + dy, WARNING_YELLOW)
+                else:
+                    buf.set_pixel(mx + dx, my + dy, MONITOR_BG)
+            else:
+                # Red error text with varying brightness
+                brightness = ((dx + dy + fi) * 17) % 5
+                if brightness == 0:
+                    buf.set_pixel(mx + dx, my + dy, (255, 50, 50))
+                elif brightness < 3:
+                    buf.set_pixel(mx + dx, my + dy, MONITOR_TEXT_RED)
+                else:
+                    buf.set_pixel(mx + dx, my + dy, (180, 40, 40))
+
+    # Flashing red border (1px, alternates on/off every 2 frames)
+    if (fi // 2) % 2 == 0:
+        border_color = WARNING_RED
+        for dx in range(mw):
+            buf.set_pixel(mx + dx, my, border_color)
+            buf.set_pixel(mx + dx, my + mh - 1, border_color)
+        for dy in range(mh):
+            buf.set_pixel(mx, my + dy, border_color)
+            buf.set_pixel(mx + mw - 1, my + dy, border_color)
 
 
 def _draw_whiteboard(buf: PixelBuffer, x: int, y: int, w: int, h: int, fi: int) -> None:

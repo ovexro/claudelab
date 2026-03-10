@@ -18,16 +18,17 @@ _BLOCK_COLORS = [GOLD_BLOCK, LAPIS, REDSTONE, EMERALD, DIAMOND]
 
 
 def _draw_conveyor(buf: PixelBuffer, x: int, y: int, w: int, fi: int) -> None:
-    """Draw animated conveyor belt."""
+    """Draw animated conveyor belt — shifts every 2 frames for smoother motion."""
+    shift = fi // 2  # half speed: shifts only every 2 frames
     for dx in range(w):
-        if (dx + fi) % 4 == 0:
+        if (dx + shift) % 4 == 0:
             c = CONVEYOR_DARK
-        elif (dx + fi) % 4 == 1:
+        elif (dx + shift) % 4 == 1:
             c = CONVEYOR_LIGHT
         else:
             c = CONVEYOR_GRAY
         buf.set_pixel(x + dx, y, c)
-        buf.set_pixel(x + dx, y + 1, CONVEYOR_GRAY if (dx + fi) % 4 != 0 else CONVEYOR_DARK)
+        buf.set_pixel(x + dx, y + 1, CONVEYOR_GRAY if (dx + shift) % 4 != 0 else CONVEYOR_DARK)
     # Side rails
     for dx in range(w):
         buf.set_pixel(x + dx, y - 1, STONE_DARK)
@@ -39,10 +40,18 @@ def _draw_conveyor(buf: PixelBuffer, x: int, y: int, w: int, fi: int) -> None:
             buf.set_pixel(x + dx + 1, y + dy, STONE_DARK)
 
 
+_SHADOW_COLOR = (20, 20, 25)
+
 def _draw_code_block(buf: PixelBuffer, x: int, y: int, color: tuple, size: int = 5) -> None:
-    """Draw a shaded code block."""
+    """Draw a shaded code block with 1px drop shadow."""
     shade = (max(0, color[0] - 40), max(0, color[1] - 40), max(0, color[2] - 40))
     light = (min(255, color[0] + 30), min(255, color[1] + 30), min(255, color[2] + 30))
+    # Drop shadow (1px below and 1px right)
+    for dx in range(size):
+        buf.set_pixel(x + dx + 1, y + size, _SHADOW_COLOR)
+    for dy in range(size):
+        buf.set_pixel(x + size, y + dy + 1, _SHADOW_COLOR)
+    # Block face
     buf.fill_rect(x, y, size, size, color)
     for dx in range(size):
         buf.set_pixel(x + dx, y, light)
@@ -88,10 +97,12 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
             w_y = conv_y - walker.height - 1
             buf.draw_sprite(walker, w_x, w_y)
 
-        # Code blocks on conveyor (moving)
+        # Code blocks on conveyor (moving at different speeds)
         if conv_w >= 24:
+            _speeds = [3, 5, 4]  # different speed per block
             for i in range(3):
-                bx = conv_x + 6 + ((fi * 5 + i * 10) % max(1, conv_w - 10))
+                speed = _speeds[i]
+                bx = conv_x + 6 + ((fi * speed + i * 10) % max(1, conv_w - 10))
                 by = conv_y - 5
                 _draw_code_block(buf, bx, by, _BLOCK_COLORS[(fi + i) % len(_BLOCK_COLORS)])
 

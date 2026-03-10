@@ -62,32 +62,31 @@ _GEAR_FRAMES = [
 
 
 def _draw_control_panel(buf: PixelBuffer, x: int, y: int, w: int, h: int, fi: int) -> None:
-    """Draw control panel with LEDs."""
+    """Draw control panel with LEDs — hash-based chaotic blinking."""
     buf.fill_rect(x, y, w, h, IRON_DARK)
     buf.fill_rect(x + 1, y + 1, w - 2, h - 2, IRON_BLOCK)
     for dx in range(1, w - 1):
         buf.set_pixel(x + dx, y + 1, (220, 220, 225))
     for bx in range(2, w - 2, 3):
         for by in range(2, min(h - 1, 6)):
-            idx = bx + by * w
-            state = (fi + idx) % 5
-            colors = [LED_GREEN, LED_AMBER, LED_GREEN, LED_GREEN, LED_OFF]
+            state = (fi * 7 + bx * 13 + by * 29) % 7
+            colors = [LED_GREEN, LED_AMBER, LED_GREEN, LED_OFF, LED_GREEN, LED_AMBER, LED_OFF]
             buf.set_pixel(x + bx, y + by, colors[state])
             buf.set_pixel(x + bx + 1, y + by, IRON_DARK)
 
 
 def _draw_progress_bar(buf: PixelBuffer, x: int, y: int, w: int, fi: int) -> None:
-    """Draw framed progress bar."""
+    """Draw framed progress bar with left-to-right gradient."""
     buf.fill_rect(x - 1, y - 1, w + 2, 4, PROGRESS_FRAME)
     buf.fill_rect(x, y, w, 2, PROGRESS_BG)
     fill = ((fi + 1) * w) // NUM_FRAMES
     for dx in range(fill):
-        if dx == fill - 1:
-            c = (100, 255, 100)
-        elif dx == fill - 2:
-            c = (70, 240, 70)
-        else:
-            c = PROGRESS_GREEN
+        # Gradient from darker green (left) to brighter green (right)
+        t = dx / max(1, fill - 1) if fill > 1 else 1.0
+        r = int(30 + t * 70)
+        g = int(160 + t * 95)
+        b = int(30 + t * 70)
+        c = (min(255, r), min(255, g), min(255, b))
         buf.set_pixel(x + dx, y, c)
         buf.set_pixel(x + dx, y + 1, c)
 

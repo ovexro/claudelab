@@ -147,6 +147,54 @@ _SIT_TYPE_BOTH = [
     "....OOO..OOO....",
 ]
 
+# Intermediate: left hand down, right hand starting to move (torso shifted slightly right)
+_SIT_TYPE_LR = [
+    "......OOOOOO....",
+    ".....O1HHHH1O...",
+    ".....OHHHHH1O...",
+    "....OOHHHHHhOO..",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    "...OOTTCCTTOO...",
+    "...OCCCCCCCCcO..",
+    "..OcCCCCCCCCcO..",
+    "..Oc...OCCCcO...",
+    "..O....OcccccO..",
+    "....OQPPPPQO....",
+    "....OPPPPPPO....",
+    "....OPPPpPPO....",
+    "....OPPpOpPPO...",
+    "....OppOOppO....",
+    "...OgGGOOgGGO...",
+    "...OGGGOOOGGO...",
+    "....OOO..OOO....",
+]
+
+# Intermediate: right hand down, left hand starting to move (torso shifted slightly left)
+_SIT_TYPE_RL = [
+    "......OOOOOO....",
+    ".....O1HHHH1O...",
+    ".....OHHHHH1O...",
+    "....OOHHHHHhOO..",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    "...OOTTCCTTOO...",
+    "...OCCCCCCCCcO..",
+    "...OCCCCCCCCcO..",
+    "...OcCCcO..cO...",
+    "..OccccO....O...",
+    "....OQPPPPQO....",
+    "....OPPPPPPO....",
+    "....OPPPpPPO....",
+    "....OPPpOpPPO...",
+    "....OppOOppO....",
+    "...OgGGOOgGGO...",
+    "...OGGGOOOGGO...",
+    "....OOO..OOO....",
+]
+
 # ---------------------------------------------------------------------------
 # Standing (neutral, pointing, examining)
 # ---------------------------------------------------------------------------
@@ -270,6 +318,54 @@ _WALK_2 = [
     "....OOO..OOO....",
 ]
 
+# Passing: legs mid-stride, right forward (intermediate between walk_1 and walk_2)
+_WALK_3 = [
+    "......OOOOOO....",
+    ".....O1HHHH1O...",
+    ".....OHHHHH1O...",
+    "....OOHHHHHhOO..",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    "...OOTTCCTTOO...",
+    "...OCCCCCCCCcO..",
+    "...OCCCCCCCCcO..",
+    "...OcCCCCCCcO...",
+    "...OcCC..CCcO...",
+    "....OcccccO.....",
+    "....OQPPPPQO....",
+    "....OPPPPPPO....",
+    "....OPPpO.pPPO..",
+    "....OPPpO..pPO..",
+    "...OgGGO..OgGO..",
+    "...OGGGO..OGGO..",
+    "....OOO....OOO..",
+]
+
+# Standing: legs together, neutral (returning to upright between strides)
+_WALK_4 = [
+    "......OOOOOO....",
+    ".....O1HHHH1O...",
+    ".....OHHHHH1O...",
+    "....OOHHHHHhOO..",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    "...OOTTCCTTOO...",
+    "...OCCCCCCCCcO..",
+    "...OCCCCCCCCcO..",
+    "...OcCCCCCCcO...",
+    "...OcCC..CCcO...",
+    "....OcccccO.....",
+    "....OQPPPPQO....",
+    "....OPPPPPPO....",
+    "....OPPPpPPPO...",
+    "....OPPpO.pPPO..",
+    "...OgGGO..OgGGO.",
+    "...OGGGO..OOGGO.",
+    "....OOO....OOO..",
+]
+
 # ---------------------------------------------------------------------------
 # Carrying block overhead (2 walk-cycle frames)
 # ---------------------------------------------------------------------------
@@ -325,6 +421,54 @@ _CARRY_2 = [
     "....OOO..OOO....",
 ]
 
+# Carry passing: legs mid-stride (matches _WALK_3 leg pattern)
+_CARRY_3 = [
+    "....OBBBBBO.....",
+    "....ObBBBbO.....",
+    "....OOOOOOO.....",
+    ".....OsSssSO....",
+    ".....O1HHHHO....",
+    "....OOHHHH1OO...",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    "...OOTTCCTTOO...",
+    "...OCCCCCCCCcO..",
+    "...OCCCCCCCCcO..",
+    "...OcCCCCCCcO...",
+    "....OcccccO.....",
+    "....OQPPPPQO....",
+    "....OPPpO.pPPO..",
+    "....OPPpO..pPO..",
+    "...OgGGO..OgGO..",
+    "...OGGGO..OGGO..",
+    "....OOO....OOO..",
+]
+
+# Carry standing: legs neutral (matches _WALK_4 leg pattern)
+_CARRY_4 = [
+    "....OBBBBBO.....",
+    "....ObBBBbO.....",
+    "....OOOOOOO.....",
+    ".....OsSssSO....",
+    ".....O1HHHHO....",
+    "....OOHHHH1OO...",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    "...OOTTCCTTOO...",
+    "...OCCCCCCCCcO..",
+    "...OCCCCCCCCcO..",
+    "...OcCCCCCCcO...",
+    "....OcccccO.....",
+    "....OQPPPPQO....",
+    "....OPPPpPPPO...",
+    "....OPPpO.pPPO..",
+    "...OgGGO..OgGGO.",
+    "...OGGGO..OOGGO.",
+    "....OOO....OOO..",
+]
+
 # ---------------------------------------------------------------------------
 # Drinking coffee (2 frames)
 # ---------------------------------------------------------------------------
@@ -369,6 +513,30 @@ _DRINK_2 = [
     "...OCCCCCCCCcO..",
     "...OCCCCCCCCcO..",
     "....OcCCCCcO....",
+    "....OccccccO....",
+    "....OQPPPPQO....",
+    "....OPPPPPPO....",
+    "....OPPPpPPO....",
+    "....OPPpOpPPO...",
+    "....OppOOppO....",
+    "...OgGGOOgGGO...",
+    "...OGGGOOOGGO...",
+    "....OOO..OOO....",
+]
+
+# Mug at mid-height (between shoulder and face, transitional frame)
+_DRINK_3 = [
+    "......OOOOOO....",
+    ".....O1HHHH1O...",
+    ".....OHHHHH1O...",
+    "....OOHHHHHhOO..",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    "...OOTTCCTTOOOO.",
+    "...OCCCCCCCCcMkO",
+    "...OCCCCCCCCcOKO",
+    "....OcCCCCcO.OO.",
     "....OccccccO....",
     "....OQPPPPQO....",
     "....OPPPPPPO....",
@@ -457,6 +625,30 @@ _PUSH_2 = [
     "....OOO....OOO..",
 ]
 
+# Both arms extended forward simultaneously
+_PUSH_3 = [
+    "......OOOOOO....",
+    ".....O1HHHH1O...",
+    ".....OHHHHH1O...",
+    "....OOHHHHHhOO..",
+    "....OLWESWLEO...",
+    "....OSSdSdSSO...",
+    ".....OSSSSO.....",
+    ".OOOTTCCCCTTOOOO",
+    "OcsccCCCCCCcccSO",
+    "OsccCCCCCCCccsLO",
+    ".OOOcCCCCCCcOOO.",
+    "...OcCC..CCcO...",
+    "....OcccccO.....",
+    "....OQPPPPQO....",
+    "....OPPPPPPO....",
+    "....OPPPpPPPO...",
+    "....OPPpO.pPPO..",
+    "...OgGGO..OgGGO.",
+    "...OGGGO..OOGGO.",
+    "....OOO....OOO..",
+]
+
 # ---------------------------------------------------------------------------
 # Sitting with chin on hand (thinking scene)
 # ---------------------------------------------------------------------------
@@ -498,15 +690,19 @@ SITTING_IDLE_2 = _make(_SIT_IDLE, _AGENT2)
 
 SITTING_TYPING = [
     _make(_SIT_TYPE_L, _AGENT1),
+    _make(_SIT_TYPE_LR, _AGENT1),
     _make(_SIT_TYPE_R, _AGENT1),
     _make(_SIT_TYPE_BOTH, _AGENT1),
+    _make(_SIT_TYPE_RL, _AGENT1),
     _make(_SIT_IDLE, _AGENT1),
 ]
 
 SITTING_TYPING_2 = [
     _make(_SIT_TYPE_L, _AGENT2),
+    _make(_SIT_TYPE_LR, _AGENT2),
     _make(_SIT_TYPE_R, _AGENT2),
     _make(_SIT_TYPE_BOTH, _AGENT2),
+    _make(_SIT_TYPE_RL, _AGENT2),
     _make(_SIT_IDLE, _AGENT2),
 ]
 
@@ -528,16 +724,21 @@ STANDING_EXAMINING = [
 
 WALKING = [
     _make(_WALK_1, _AGENT1),
+    _make(_WALK_3, _AGENT1),
     _make(_WALK_2, _AGENT1),
+    _make(_WALK_4, _AGENT1),
 ]
 
 CARRYING = [
     _make(_CARRY_1, _CARRY_MAP),
+    _make(_CARRY_3, _CARRY_MAP),
     _make(_CARRY_2, _CARRY_MAP),
+    _make(_CARRY_4, _CARRY_MAP),
 ]
 
 DRINKING = [
     _make(_DRINK_1, _DRINK_MAP),
+    _make(_DRINK_3, _DRINK_MAP),
     _make(_DRINK_2, _DRINK_MAP),
     _make(_DRINK_1, _DRINK_MAP),
 ]
@@ -547,5 +748,6 @@ LEANING = _make(_LEAN, _AGENT2)
 BUTTON_PUSH = [
     _make(_PUSH_1, _AGENT1),
     _make(_PUSH_2, _AGENT1),
+    _make(_PUSH_3, _AGENT1),
     _make(_STAND, _AGENT1),
 ]
