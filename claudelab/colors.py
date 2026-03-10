@@ -1,5 +1,7 @@
 """Color palette and theme management for ClaudeLab."""
 
+import os
+
 import curses
 
 # Color pair IDs
@@ -35,6 +37,20 @@ PAIR_LABEL = 28
 
 THEME_DARK = "dark"
 THEME_LIGHT = "light"
+
+
+def detect_color_mode() -> str:
+    """Detect terminal color support.
+
+    Returns one of: ``'truecolor'``, ``'256'``, ``'basic'``.
+    """
+    colorterm = os.environ.get("COLORTERM", "").lower()
+    if colorterm in ("truecolor", "24bit"):
+        return "truecolor"
+    term = os.environ.get("TERM", "")
+    if "256color" in term:
+        return "256"
+    return "basic"
 
 
 def init_colors(theme: str = THEME_DARK) -> None:

@@ -3,6 +3,10 @@
 Drives the curses display at ~8 FPS, compositing the title bar, the
 current scene, and the status bar into the terminal.  Handles terminal
 resize (SIGWINCH) gracefully.
+
+Supports two rendering modes:
+- **ascii** (classic): curses color pairs + ASCII line-drawing art
+- **voxel**: 24-bit ANSI color + half-block Minecraft-style pixel art
 """
 
 from __future__ import annotations
@@ -10,6 +14,7 @@ from __future__ import annotations
 import curses
 import datetime
 import signal
+import sys
 import time
 from typing import Callable
 
@@ -22,7 +27,7 @@ from claudelab.colors import (
     PAIR_LABEL,
     PAIR_DIM,
 )
-from claudelab.scenes import get_scene_frames
+from claudelab.scenes import get_scene_frames, get_voxel_scene_frames
 
 # ---------------------------------------------------------------------------
 # Title bar
@@ -60,10 +65,10 @@ def _draw_status(stdscr: curses.window, row: int, width: int, activity: str) -> 
 
 
 # ---------------------------------------------------------------------------
-# Scene rendering
+# ASCII scene rendering (classic mode)
 # ---------------------------------------------------------------------------
 
-def _draw_scene(
+def _draw_scene_ascii(
     stdscr: curses.window,
     scene_rows: list[str],
     start_row: int,
@@ -71,8 +76,7 @@ def _draw_scene(
     max_rows: int,
     activity: str,
 ) -> None:
-    """Draw the scene frame rows onto the screen."""
-    # Choose a color pair based on activity
+    """Draw the scene frame rows onto the screen (classic ASCII mode)."""
     color_map = {
         "thinking": PAIR_LABEL,
         "coding": PAIR_MONITOR_TEXT,
@@ -88,11 +92,26 @@ def _draw_scene(
             break
         r = start_row + i
         try:
-            # Truncate to width and write
             text = row_text[:width]
             stdscr.addnstr(r, 0, text, width, base_pair)
         except curses.error:
             pass
+
+
+def _draw_scene_voxel(
+    ansi_lines: list[str],
+    start_row: int,
+    width: int,
+    max_rows: int,
+) -> None:
+    """Write pre-rendered ANSI half-block lines directly to stdout."""
+    out = sys.stdout
+    for i, line in enumerate(ansi_lines):
+        if i >= max_rows:
+            break
+        # Move cursor to position and write the ANSI line
+        out.write(f"\x1b[{start_row + i + 1};1H{line}")
+    out.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -108,14 +127,15 @@ class Renderer:
         activity_fn: Callable[[], str],
         fps: int = 8,
         demo: bool = False,
+        voxel: bool = False,
     ) -> None:
         self.stdscr = stdscr
         self.activity_fn = activity_fn
         self.fps = max(1, min(fps, 30))
         if self.fps != fps:
-            import sys
             print(f"ClaudeLab: FPS clamped to {self.fps} (requested {fps})", file=sys.stderr)
         self.demo = demo
+        self.voxel = voxel
         self._running = True
         self._resized = False
         self._frame_idx = 0
@@ -128,7 +148,7 @@ class Renderer:
         # Cache scene frames so we don't regenerate every tick
         self._cached_activity: str = ""
         self._cached_dims: tuple[int, int] = (0, 0)
-        self._cached_frames: list[list[str]] = []
+        self._cached_frames: list = []
 
     # -- signal handlers ---------------------------------------------------
 
@@ -142,12 +162,15 @@ class Renderer:
 
     # -- frame cache -------------------------------------------------------
 
-    def _get_frames(self, activity: str, width: int, height: int) -> list[list[str]]:
+    def _get_frames(self, activity: str, width: int, height: int) -> list:
         dims = (width, height)
         if activity != self._cached_activity or dims != self._cached_dims:
             self._cached_activity = activity
             self._cached_dims = dims
-            self._cached_frames = get_scene_frames(activity, width, height)
+            if self.voxel:
+                self._cached_frames = get_voxel_scene_frames(activity, width, height)
+            else:
+                self._cached_frames = get_scene_frames(activity, width, height)
             self._frame_idx = 0
         return self._cached_frames
 
@@ -155,7 +178,6 @@ class Renderer:
 
     def run(self) -> None:
         """Run the render loop until stopped or interrupted."""
-        # Install resize handler
         old_handler = signal.signal(signal.SIGWINCH, self.handle_resize)
 
         try:
@@ -189,7 +211,6 @@ class Renderer:
                 continue
 
             if height < 7 or width < 20:
-                # Terminal too small
                 self.stdscr.erase()
                 msg = "Too small!"
                 try:
@@ -225,11 +246,25 @@ class Renderer:
             self.stdscr.erase()
 
             _draw_title(self.stdscr, width)
-            _draw_scene(self.stdscr, frame, 1, width, scene_height, activity)
-            _draw_status(self.stdscr, height - 1, width, activity)
 
-            self.stdscr.noutrefresh()
-            curses.doupdate()
+            if self.voxel:
+                # frame is a PixelBuffer -- render to ANSI and write to stdout
+                ansi_lines = frame.render_to_halfblocks()
+                # Flush curses title first
+                self.stdscr.noutrefresh()
+                curses.doupdate()
+                # Write voxel scene via raw ANSI
+                _draw_scene_voxel(ansi_lines, 1, width, scene_height)
+                # Draw status bar via curses (move cursor back)
+                _draw_status(self.stdscr, height - 1, width, activity)
+                self.stdscr.noutrefresh()
+                curses.doupdate()
+            else:
+                # frame is list[str] -- classic ASCII rendering
+                _draw_scene_ascii(self.stdscr, frame, 1, width, scene_height, activity)
+                _draw_status(self.stdscr, height - 1, width, activity)
+                self.stdscr.noutrefresh()
+                curses.doupdate()
 
             # -- timing --
             elapsed = time.monotonic() - t0

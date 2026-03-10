@@ -21,7 +21,7 @@ import argparse
 import curses
 import sys
 
-from claudelab.colors import init_colors
+from claudelab.colors import detect_color_mode, init_colors
 from claudelab.detector import get_current_activity, start_detection, stop_detection
 from claudelab.renderer import Renderer
 
@@ -48,6 +48,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Cycle through all scenes for demonstration",
     )
+    parser.add_argument(
+        "--renderer",
+        choices=["auto", "voxel", "ascii"],
+        default="auto",
+        help="Rendering mode (default: auto). voxel=Minecraft blocks, ascii=classic",
+    )
     return parser.parse_args(argv)
 
 
@@ -60,11 +66,18 @@ def _curses_main(stdscr: curses.window, args: argparse.Namespace) -> None:
 
     init_colors(args.theme)
 
+    # Resolve renderer mode
+    mode = args.renderer
+    if mode == "auto":
+        cm = detect_color_mode()
+        mode = "voxel" if cm in ("truecolor", "256") else "ascii"
+
     renderer = Renderer(
         stdscr,
         activity_fn=get_current_activity,
         fps=args.fps,
         demo=args.demo,
+        voxel=(mode == "voxel"),
     )
 
     try:
