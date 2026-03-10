@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { SCENES } from '../assets/ascii-frames'
+import { SCENES } from '../assets/voxel-frames'
 import './Demo.css'
 
 const SCENE_KEYS = ['thinking', 'coding', 'debugging', 'running', 'building', 'idle'];
@@ -98,9 +98,7 @@ function Demo() {
           <div className="demo-terminal-titlebar" style={{ color: '#ffb000' }}>
             {'═'.repeat(18)} AI ENGINEERING LAB {'═'.repeat(18)}
           </div>
-          <pre className="demo-terminal-body">
-            {currentFrame.join('\n')}
-          </pre>
+          <pre className="demo-terminal-body" dangerouslySetInnerHTML={{ __html: currentFrame.join('\n') }} />
           <div className="demo-terminal-status">
             <span>
               Activity: <span style={{ color }}>{SCENES[activeScene]?.name.toUpperCase()}</span>

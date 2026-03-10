@@ -127,7 +127,7 @@
 .terminal-body {
   font-family: var(--font-mono);
   font-size: 0.55rem;
-  line-height: 1.25;
+  line-height: 1;
   color: var(--green-dim);
   padding: 0.5rem 0.75rem;
   min-height: 240px;

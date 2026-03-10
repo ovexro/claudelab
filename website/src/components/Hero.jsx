@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { LOGO, getHeroFrames } from '../assets/ascii-frames'
+import { LOGO, getHeroFrames } from '../assets/voxel-frames'
 import './Hero.css'
 
 const SCENE_NAMES = ['THINKING', 'CODING', 'DEBUGGING', 'RUNNING', 'BUILDING', 'IDLE'];
@@ -41,9 +41,7 @@ function Hero() {
     <section className={`hero ${isVisible ? 'hero--visible' : ''}`}>
       {/* ASCII Logo */}
       <div className="hero-logo">
-        <pre className="hero-logo-ascii">
-          {LOGO.join('\n')}
-        </pre>
+        <pre className="hero-logo-ascii" dangerouslySetInnerHTML={{ __html: LOGO.join('\n') }} />
       </div>
 
       {/* Tagline */}
@@ -74,9 +72,7 @@ function Hero() {
             {'═'.repeat(20)} AI ENGINEERING LAB {'═'.repeat(20)}
           </span>
         </div>
-        <pre className="terminal-body">
-          {currentFrame?.lines?.join('\n') || ''}
-        </pre>
+        <pre className="terminal-body" dangerouslySetInnerHTML={{ __html: currentFrame?.lines?.join('\n') || '' }} />
         <div className="terminal-statusbar">
           <span>Activity: <span style={{ color: sceneColor }}>{currentLabel.toUpperCase()}</span></span>
           <span>ClaudeLab v0.1.0</span>

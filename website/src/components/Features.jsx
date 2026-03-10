@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { SCENES } from '../assets/ascii-frames'
+import { SCENES } from '../assets/voxel-frames'
 import './Features.css'
 
 const SCENE_KEYS = ['thinking', 'coding', 'debugging', 'running', 'building', 'idle'];
@@ -63,9 +63,7 @@ function FeatureCard({ sceneKey, index }) {
         <h3 className="feature-name" style={{ color }}>{scene.name}</h3>
       </div>
       <div className="feature-preview">
-        <pre className="feature-ascii">
-          {preview.join('\n')}
-        </pre>
+        <pre className="feature-ascii" dangerouslySetInnerHTML={{ __html: preview.join('\n') }} />
       </div>
       <p className="feature-description">{scene.description}</p>
       <p className="feature-trigger">

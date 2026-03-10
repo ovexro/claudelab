@@ -63,7 +63,7 @@
 .feature-ascii {
   font-family: var(--font-mono);
   font-size: 0.4rem;
-  line-height: 1.2;
+  line-height: 1;
   color: var(--green-dim);
   white-space: pre;
   user-select: none;
