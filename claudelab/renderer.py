@@ -57,7 +57,8 @@ def _draw_title(stdscr: curses.window, width: int) -> None:
 def _draw_status(stdscr: curses.window, row: int, width: int, activity: str) -> None:
     """Render the status bar at the given row."""
     now = datetime.datetime.now().strftime("%H:%M:%S")
-    status_text = f" Activity: {activity.upper():10s}  |  {now}  |  ClaudeLab v0.1.0 "
+    from claudelab import __version__
+    status_text = f" Activity: {activity.upper():10s}  |  {now}  |  ClaudeLab v{__version__} "
     padded = status_text.ljust(width)[:width]
     try:
         stdscr.addnstr(row, 0, padded, width, curses.color_pair(PAIR_STATUS))

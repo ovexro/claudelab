@@ -88,7 +88,7 @@ function Hero() {
         </div>
         <div className="terminal-statusbar">
           <span>Activity: <span style={{ color: sceneColor }}>{currentLabel.toUpperCase()}</span></span>
-          <span>ClaudeLab v0.1.2</span>
+          <span>ClaudeLab v0.1.3</span>
         </div>
       </div>
 

@@ -816,20 +816,24 @@ def build_iso_office(
     floor_pixel_w = (grid_w + grid_d) * TILE_W // 2
     floor_pixel_h = (grid_w + grid_d) * TILE_H // 2
 
-    # Wall height: fill space above the floor
-    wall_pixel_h = max(8, pixel_height - floor_pixel_h - 2)
+    # Wall height: proportional to floor, capped to prevent domination
+    # on narrow tall terminals (e.g. tmux half-pane)
+    raw_wall_h = pixel_height - floor_pixel_h - 2
+    max_wall = max(int(floor_pixel_h * 2.0), int(pixel_height * 0.35))
+    wall_pixel_h = max(8, min(raw_wall_h, max_wall))
 
-    # Origin: the iso(0,0) point. Position so floor diamond is centered
-    # horizontally and the bottom of the diamond reaches near the bottom.
-    # Leftmost floor point: iso(0, grid_d) → x = origin_x - grid_d * TW/2
-    # Rightmost: iso(grid_w, 0) → x = origin_x + grid_w * TW/2
-    # Center: origin_x + (grid_w - grid_d) * TW/4 = width/2
+    # Origin: the iso(0,0) point. Center the scene horizontally.
     origin_x = width // 2 - (grid_w - grid_d) * TILE_W // 4
 
-    # Topmost floor point: iso(0,0) → y = origin_y
-    # Bottommost: iso(grid_w, grid_d) → y = origin_y + floor_pixel_h
-    # We want bottommost near pixel_height:
-    origin_y = pixel_height - floor_pixel_h - 1
+    # Center scene vertically when there's excess space
+    total_scene_h = wall_pixel_h + floor_pixel_h
+    if total_scene_h < pixel_height:
+        # Bias scene slightly upward (1/3 padding above, 2/3 below)
+        top_pad = (pixel_height - total_scene_h) // 3
+        origin_y = top_pad + wall_pixel_h
+    else:
+        # No room to spare — push floor to the bottom
+        origin_y = pixel_height - floor_pixel_h - 1
 
     # Draw walls first (behind everything)
     _draw_back_wall(buf, grid_w, grid_d, origin_x, origin_y, wall_pixel_h)
@@ -847,11 +851,13 @@ def build_iso_office(
     # -------------------------------------------------------------------
     # Contact shadows — drawn on floor before furniture
     # -------------------------------------------------------------------
-    desk1_gx = 1.0
-    desk1_gy = 1.0
-    desk2_gx = min(grid_w - 2.0, max(3.0, grid_w * 0.5))
-    desk2_gy = 1.0
-    plant_gy = min(grid_d - 1.0, max(2.0, grid_d * 0.7))
+    # Scale furniture positions proportionally with room size
+    desk1_gx = max(1.0, grid_w * 0.25)
+    desk1_gy = max(1.0, grid_d * 0.2)
+    desk2_gx = max(desk1_gx + 2.0, grid_w * 0.6)
+    desk2_gy = max(1.0, grid_d * 0.25)
+    plant_gy = max(2.0, grid_d * 0.65)
+    bookcase_gy = max(1.5, grid_d * 0.35)
 
     # Shadows under desks
     _draw_contact_shadow(buf, desk1_gx, desk1_gy, origin_x, origin_y, 5)
@@ -867,7 +873,7 @@ def build_iso_office(
     # Shadow under plant
     _draw_contact_shadow(buf, 0.0, plant_gy, origin_x, origin_y, 2)
     # Shadow under bookcase
-    _draw_contact_shadow(buf, 0.0, 2.0, origin_x, origin_y, 3)
+    _draw_contact_shadow(buf, 0.0, bookcase_gy, origin_x, origin_y, 3)
     # Shadow under agent positions
     _draw_contact_shadow(buf, desk1_gx, desk1_gy + 0.8, origin_x, origin_y, 3)
     if width >= 50:
@@ -876,8 +882,8 @@ def build_iso_office(
     # -------------------------------------------------------------------
     # Furniture — placed relative to grid, scales with room size
     # -------------------------------------------------------------------
-    # Bookcase against left wall (behind desks, at grid position 0,2)
-    _draw_bookcase(buf, 0.0, 2.0, origin_x, origin_y)
+    # Bookcase against left wall
+    _draw_bookcase(buf, 0.0, bookcase_gy, origin_x, origin_y)
 
     # Desk 1: near back-left
     _draw_iso_desk(buf, desk1_gx, desk1_gy, origin_x, origin_y)
@@ -897,9 +903,11 @@ def build_iso_office(
         mon2_rect = (0, 0, 0, 0)
 
     # Server rack (back-right area)
+    rack_gx = grid_w - 1.5
+    rack_gy = 0.5
     if width >= 50:
         _draw_iso_server_rack(
-            buf, grid_w - 1.5, 0.5, origin_x, origin_y, frame_idx,
+            buf, rack_gx, rack_gy, origin_x, origin_y, frame_idx,
         )
 
     # Plant (front-left area)
