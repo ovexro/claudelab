@@ -29,11 +29,7 @@ def detect_sixel() -> bool:
     """
     # Quick env-var shortcut for known terminals
     term_program = os.environ.get("TERM_PROGRAM", "").lower()
-    if term_program in ("wezterm", "mintty", "kitty"):
-        return True
-    # Also check TERM for kitty
-    term = os.environ.get("TERM", "").lower()
-    if "kitty" in term:
+    if term_program in ("wezterm", "mintty"):
         return True
 
     # Check if stdout is a terminal
