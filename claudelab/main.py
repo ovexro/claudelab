@@ -57,7 +57,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _curses_main(stdscr: curses.window, args: argparse.Namespace) -> None:
+def _curses_main(stdscr: curses.window, args: argparse.Namespace, mode: str) -> None:
     """Curses application body."""
     # Terminal setup
     curses.curs_set(0)           # hide cursor
@@ -65,17 +65,6 @@ def _curses_main(stdscr: curses.window, args: argparse.Namespace) -> None:
     stdscr.timeout(0)
 
     init_colors(args.theme)
-
-    # Resolve renderer mode
-    mode = args.renderer
-    if mode == "auto":
-        cm = detect_color_mode()
-        if cm in ("truecolor", "256"):
-            # Try sixel first, fall back to voxel half-block
-            from claudelab.sixel import detect_sixel
-            mode = "sixel" if detect_sixel() else "voxel"
-        else:
-            mode = "ascii"
 
     renderer = Renderer(
         stdscr,
@@ -92,16 +81,33 @@ def _curses_main(stdscr: curses.window, args: argparse.Namespace) -> None:
         pass
 
 
+def _resolve_mode(renderer_arg: str) -> str:
+    """Resolve the rendering mode *before* curses takes over."""
+    if renderer_arg == "sixel":
+        from claudelab.sixel import detect_sixel
+        if not detect_sixel():
+            print("ClaudeLab: sixel not supported by terminal, falling back to voxel", file=sys.stderr)
+            return "voxel"
+        return "sixel"
+    if renderer_arg == "auto":
+        cm = detect_color_mode()
+        return "voxel" if cm in ("truecolor", "256") else "ascii"
+    return renderer_arg  # "voxel" or "ascii"
+
+
 def main(argv: list[str] | None = None) -> None:
     """Entry point for ``claudelab`` console script."""
     args = _parse_args(argv)
+
+    # Resolve renderer mode before curses init (sixel detection needs raw terminal)
+    mode = _resolve_mode(args.renderer)
 
     # Start background activity detection (unless in demo mode)
     if not args.demo:
         start_detection()
 
     try:
-        curses.wrapper(lambda stdscr: _curses_main(stdscr, args))
+        curses.wrapper(lambda stdscr: _curses_main(stdscr, args, mode))
     except KeyboardInterrupt:
         pass
     finally:
