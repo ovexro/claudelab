@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "claudelab"
 version = "0.1.0"
-description = "A visual terminal companion for Claude Code — animated ASCII art of AI engineers working"
+description = "A visual terminal companion for Claude Code — animated isometric 2.5D office with AI engineers working"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [{name = "ClaudeLab"}]
-keywords = ["claude", "terminal", "tui", "ascii-art", "animation"]
+keywords = ["claude", "terminal", "tui", "isometric", "pixel-art", "animation"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console :: Curses",
