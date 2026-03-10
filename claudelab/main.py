@@ -50,9 +50,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--renderer",
-        choices=["auto", "sixel", "voxel", "ascii"],
+        choices=["auto", "iso", "sixel", "voxel", "ascii"],
         default="auto",
-        help="Rendering mode (default: auto). sixel=pixel graphics, voxel=half-block, ascii=classic",
+        help="Rendering mode (default: auto). iso=isometric 3D, sixel=pixel graphics, voxel=half-block, ascii=classic",
     )
     return parser.parse_args(argv)
 
@@ -73,6 +73,7 @@ def _curses_main(stdscr: curses.window, args: argparse.Namespace, mode: str) -> 
         demo=args.demo,
         voxel=(mode in ("voxel", "sixel")),
         sixel=(mode == "sixel"),
+        iso=(mode == "iso"),
     )
 
     try:

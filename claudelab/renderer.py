@@ -28,7 +28,7 @@ from claudelab.colors import (
     PAIR_LABEL,
     PAIR_DIM,
 )
-from claudelab.scenes import get_scene_frames, get_voxel_scene_frames
+from claudelab.scenes import get_scene_frames, get_voxel_scene_frames, get_iso_scene_frames
 
 # ---------------------------------------------------------------------------
 # Title bar
@@ -144,6 +144,7 @@ class Renderer:
         demo: bool = False,
         voxel: bool = False,
         sixel: bool = False,
+        iso: bool = False,
     ) -> None:
         self.stdscr = stdscr
         self.activity_fn = activity_fn
@@ -151,7 +152,8 @@ class Renderer:
         if self.fps != fps:
             print(f"ClaudeLab: FPS clamped to {self.fps} (requested {fps})", file=sys.stderr)
         self.demo = demo
-        self.voxel = voxel or sixel  # sixel uses voxel scenes at higher res
+        self.iso = iso
+        self.voxel = voxel or sixel or iso  # all pixel modes use PixelBuffer
         self.sixel = sixel
         self._running = True
         self._resized = False
@@ -188,7 +190,9 @@ class Renderer:
         if activity != self._cached_activity or dims != self._cached_dims:
             self._cached_activity = activity
             self._cached_dims = dims
-            if self.voxel:
+            if self.iso:
+                self._cached_frames = get_iso_scene_frames(activity, width, height)
+            elif self.voxel:
                 # Sixel renders at higher resolution (4x)
                 if self.sixel:
                     scale = 4

@@ -62,3 +62,35 @@ def get_voxel_scene_frames(activity: str, width: int, height: int) -> list:
     if module is None:
         module = scenes["idle"]
     return module.get_frames(width, height)  # type: ignore[union-attr]
+
+
+# ---------------------------------------------------------------------------
+# Isometric mode
+# ---------------------------------------------------------------------------
+
+_ISO_MAP: dict[str, object] | None = None
+
+
+def _load_iso_scenes() -> dict[str, object]:
+    global _ISO_MAP
+    if _ISO_MAP is None:
+        from claudelab.scenes import iso_coding
+        # For now, all activities use iso_coding as the proof of concept
+        _ISO_MAP = {
+            "thinking": iso_coding,
+            "coding": iso_coding,
+            "debugging": iso_coding,
+            "running": iso_coding,
+            "building": iso_coding,
+            "idle": iso_coding,
+        }
+    return _ISO_MAP
+
+
+def get_iso_scene_frames(activity: str, width: int, height: int) -> list:
+    """Return isometric (PixelBuffer) animation frames for the given *activity*."""
+    scenes = _load_iso_scenes()
+    module = scenes.get(activity)
+    if module is None:
+        module = scenes["idle"]
+    return module.get_frames(width, height)  # type: ignore[union-attr]
