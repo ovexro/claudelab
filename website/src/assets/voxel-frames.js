@@ -1,5 +1,5 @@
-// NES-quality voxel frames for ClaudeLab website
-// Mirrors Python PixelBuffer — renders to HTML <span> half-block elements
+// NES-quality isometric 2.5D voxel frames for ClaudeLab website
+// Mirrors Python iso_office.py — renders to HTML <span> half-block elements
 
 // ─── Palette (3-tone shading) ──────────────────────────────────────
 
@@ -8,6 +8,7 @@ const P = {
   OL: [15, 10, 20],
   // Stone wall
   STONE_HL: [190, 190, 195], STONE: [128, 128, 128], STONE_L: [160, 160, 160], STONE_D: [80, 80, 80],
+  COBBLE: [110, 110, 110],
   // Wood
   OAK_L: [200, 160, 100], OAK: [170, 130, 80], OAK_D: [140, 105, 65], OAK_LOG: [85, 65, 40],
   BIRCH: [200, 190, 160],
@@ -51,7 +52,7 @@ const P = {
   EMERALD: [50, 200, 80], DIAMOND: [80, 210, 230],
   BB: [65, 50, 35], BB_D: [45, 35, 25],
   // BG
-  BG: [10, 10, 15],
+  BG: [20, 20, 28],
 };
 
 // ─── PixelBuffer ────────────────────────────────────────────────────
@@ -526,192 +527,371 @@ const CARRY2 = [
   '....OOO..OOO....',
 ];
 
-// ─── Office builder (NES quality) ──────────────────────────────────
+// ─── Isometric math (ported from iso_office.py) ─────────────────────
 
-function drawWall(buf, wallH) {
-  for (let y = 0; y < wallH - 2; y++) {
-    let base, mortar;
-    if (y < 2) { base = P.STONE_D; mortar = [65, 65, 65]; }
-    else if (y < wallH / 3) { base = P.STONE; mortar = P.STONE_D; }
-    else { base = P.STONE_L; mortar = P.STONE; }
-    for (let x = 0; x < buf.w; x++) {
-      const bx = (x + ((y / 3 | 0) % 2 ? 3 : 0)) % 6;
-      const by = y % 3;
-      if (bx === 0 || by === 0) buf.set(x, y, mortar);
-      else if ((x * 7 + y * 13) % 17 === 0) buf.set(x, y, P.STONE_HL);
-      else buf.set(x, y, base);
-    }
-  }
-  // Baseboard
-  const bby = wallH - 2;
-  for (let x = 0; x < buf.w; x++) {
-    buf.set(x, bby, P.BB);
-    buf.set(x, bby + 1, P.BB_D);
-  }
+const TILE_W = 16;
+const TILE_H = 8;
+
+function isoToScreen(gx, gy, ox, oy) {
+  const sx = Math.floor((gx - gy) * TILE_W / 2 + ox);
+  const sy = Math.floor((gx + gy) * TILE_H / 2 + oy);
+  return [sx, sy];
 }
 
-function drawFloor(buf, fy) {
-  for (let y = fy; y < buf.h; y++) {
-    const dist = y - fy;
-    for (let x = 0; x < buf.w; x++) {
+// ─── Isometric drawing primitives ───────────────────────────────────
+
+function drawIsoDiamond(buf, cx, cy, color, highlight, shadow) {
+  const hw = TILE_W >> 1;
+  const hh = TILE_H >> 1;
+  for (let dy = 0; dy < TILE_H; dy++) {
+    let span;
+    if (dy < hh) {
+      span = Math.floor((dy + 1) * hw / hh);
+    } else {
+      span = Math.floor((TILE_H - dy) * hw / hh);
+    }
+    for (let dx = -span + 1; dx < span; dx++) {
+      const px = cx + dx;
+      const py = cy - hh + dy;
       let c;
-      const pr = dist % 4;
-      if (pr === 0) c = P.OAK_D;
-      else if (pr === 1 && dist < 4) c = P.OAK_L;
-      else c = P.OAK;
-      const seam = dist / 4 | 0;
-      if ((x + (seam % 2 ? 4 : 0)) % 8 === 0) c = P.OAK_D;
-      if (dist < 2) c = P.OAK_D;
-      buf.set(x, y, c);
+      if (dx < 0 && highlight) c = highlight;
+      else if (dx > 0 && shadow) c = shadow;
+      else c = color;
+      buf.set(px, py, c);
     }
   }
 }
 
-function drawWindow(buf, x, y, w, h, fi) {
-  const sky = P.SKY;
-  for (let dx = 0; dx < w; dx++) { buf.set(x + dx, y, P.OAK_LOG); buf.set(x + dx, y + h - 1, P.OAK_LOG); }
-  for (let dy = 0; dy < h; dy++) { buf.set(x, y + dy, P.OAK_LOG); buf.set(x + w - 1, y + dy, P.OAK_LOG); }
-  const mx = x + (w >> 1), my = y + (h >> 1);
-  for (let dy = 1; dy < h - 1; dy++) buf.set(mx, y + dy, P.OAK_LOG);
-  for (let dx = 1; dx < w - 1; dx++) buf.set(x + dx, my, P.OAK_LOG);
-  for (let dy = 1; dy < h - 1; dy++)
-    for (let dx = 1; dx < w - 1; dx++)
-      if (dx !== mx - x && dy !== my - y) buf.set(x + dx, y + dy, sky);
-  // Sun
-  for (let dy = 0; dy < 3; dy++)
-    for (let dx = 0; dx < 3; dx++)
-      buf.set(x + 2 + dx, y + 1 + dy, P.SUN);
-  buf.set(x + 3, y + 1, [255, 245, 140]);
-  // Cloud
-  if (w > 8) {
-    const cx = x + w - 6;
-    for (let dx = 0; dx < 4; dx++) buf.set(cx + dx, y + 3, P.CLOUD);
-    for (let dx = -1; dx < 4; dx++) buf.set(cx + dx, y + 4, P.CLOUD);
-    buf.set(cx + 1, y + 2, P.CLOUD); buf.set(cx + 2, y + 2, P.CLOUD);
-  }
-}
+// ─── Isometric room geometry ────────────────────────────────────────
 
-function drawDesk(buf, x, y, w) {
-  for (let dx = 0; dx < w; dx++) buf.set(x + dx, y, P.OAK_L);
-  buf.fill(x, y + 1, w, 2, P.OAK);
-  for (let dx = 0; dx < w; dx++) buf.set(x + dx, y + 3, P.OAK_D);
-  for (let dy = 4; dy < 8; dy++) { buf.set(x + 1, y + dy, P.OAK_LOG); buf.set(x + w - 2, y + dy, P.OAK_LOG); }
-}
-
-function drawKeyboard(buf, x, y) {
-  buf.fill(x, y, 8, 2, P.KB_D);
-  for (let dx = 0; dx < 8; dx += 2) buf.set(x + dx, y, P.KB_K);
-  for (let dx = 1; dx < 7; dx += 2) buf.set(x + dx, y + 1, P.KB_K);
-}
-
-function drawChair(buf, x, y) {
-  buf.set(x, y - 4, P.CH_HL);
-  buf.fill(x, y - 3, 1, 3, P.CH);
-  buf.set(x, y, P.CH_S);
-  buf.set(x, y + 1, P.CH_HL);
-  buf.fill(x + 1, y + 1, 3, 1, P.CH);
-  buf.set(x + 4, y + 1, P.CH_S);
-  buf.set(x + 2, y + 2, P.CH_S);
-  buf.set(x, y + 3, P.CH_S); buf.set(x + 2, y + 3, P.CH_S); buf.set(x + 4, y + 3, P.CH_S);
-}
-
-function drawMonitor(buf, x, y, w = 10, h = 8) {
-  buf.fill(x, y, w, h, P.MON_FR);
-  buf.fill(x + 1, y + 1, w - 2, h - 2, P.MON_GLOW);
-  buf.fill(x + 2, y + 2, w - 4, h - 4, P.MON_BG);
-  buf.set(x + w - 2, y + h - 1, P.LED_G);
-  buf.fill(x + (w >> 1) - 1, y + h, 2, 2, P.IRON_D);
-  buf.fill(x + (w >> 1) - 2, y + h + 2, 5, 1, P.IRON_D);
-}
-
-function drawServerRack(buf, x, y, h, fi) {
-  const w = 6;
-  buf.fill(x, y, w, h, P.IRON_D);
-  for (let r = 1; r < h - 1; r += 2) {
-    buf.fill(x + 1, y + r, w - 2, 1, P.IRON);
-    for (let dx = 1; dx < w - 1; dx++)
-      if (dx % 2 === 0) buf.set(x + dx, y + r, [180, 180, 185]);
-    const colors = [P.LED_G, P.LED_A, P.LED_G, P.LED_O];
-    buf.set(x + 1, y + r, colors[(fi + r) % 4]);
-    buf.set(x + w - 2, y + r, colors[(fi + r + 2) % 4]);
-  }
-}
-
-function drawPlant(buf, x, y, fi) {
-  buf.fill(x, y + 5, 5, 2, P.POT);
-  buf.set(x, y + 5, [160, 85, 50]); buf.set(x + 4, y + 6, [160, 85, 50]);
-  buf.set(x + 2, y + 4, P.LEAF_D); buf.set(x + 2, y + 3, P.LEAF_D); buf.set(x + 2, y + 2, P.LEAF_D);
-  const s = fi % 8 < 4 ? 1 : 0;
-  buf.set(x + 1 + s, y, P.LEAF_L); buf.set(x + 2 + s, y, P.LEAF); buf.set(x + 3, y, P.LEAF);
-  buf.set(x + s, y + 1, P.LEAF); buf.set(x + 1, y + 1, P.LEAF_L); buf.set(x + 3, y + 1, P.LEAF); buf.set(x + 4, y + 1, P.LEAF_D);
-  buf.set(x + 1, y + 2, P.LEAF); buf.set(x + 3, y + 2, P.LEAF_D);
-}
-
-function drawCoffeeMachine(buf, x, y) {
-  buf.fill(x, y, 4, 5, P.IRON);
-  buf.set(x, y, [220, 220, 225]);
-  buf.fill(x + 3, y, 1, 5, P.IRON_D);
-  buf.set(x + 1, y + 1, P.COFFEE); buf.set(x + 2, y + 1, P.COFFEE);
-  buf.set(x + 1, y + 2, [90, 50, 20]); buf.set(x + 2, y + 2, [90, 50, 20]);
-  buf.set(x + 1, y + 3, P.IRON_D);
-  buf.fill(x, y + 5, 4, 1, P.IRON_D);
-}
-
-function drawCeilingLight(buf, x, y, w) {
-  buf.fill(x, y, w, 2, P.IRON_D);
-  buf.fill(x + 1, y + 1, w - 2, 1, P.GLOW);
-  for (let dy = 2; dy < 5; dy++) {
-    const spread = dy - 1;
-    for (let dx = -spread; dx < w + spread; dx++) {
-      const px = x + dx, py = y + dy;
-      if (px >= 0 && px < buf.w && py >= 0 && py < buf.h) {
-        const [r, g, b] = buf.px[py][px];
-        buf.px[py][px] = [Math.min(255, r + 12), Math.min(255, g + 10), Math.min(255, b + 8)];
+function drawIsoFloor(buf, gridW, gridD, ox, oy) {
+  for (let gy = 0; gy < gridD; gy++) {
+    for (let gx = 0; gx < gridW; gx++) {
+      const [cx, cy] = isoToScreen(gx + 0.5, gy + 0.5, ox, oy);
+      if ((gx + gy) % 2 === 0) {
+        drawIsoDiamond(buf, cx, cy, P.OAK, P.OAK_L, P.OAK_D);
+      } else {
+        drawIsoDiamond(buf, cx, cy, P.OAK_D, P.OAK, P.OAK_LOG);
       }
     }
   }
 }
 
-function buildOffice(w, ph, fi) {
-  const buf = new PixelBuffer(w, ph);
-  const wallH = Math.max(6, Math.round(ph * 7 / 20));
-  const fy = wallH;
-
-  drawWall(buf, wallH);
-  drawFloor(buf, fy);
-
-  // Window
-  const ww = Math.min(14, w / 4 | 0), wh = Math.min(10, wallH - 3);
-  if (ww >= 8 && wh >= 6) drawWindow(buf, w - ww - 3, 1, ww, wh, fi);
-
-  // Ceiling light
-  if (w >= 50 && wallH >= 8) drawCeilingLight(buf, w / 3 | 0, 0, 8);
-
-  const dw = Math.min(14, w / 5 | 0), dy = fy + 2;
-  if (w >= 40) {
-    drawDesk(buf, 3, dy, dw);
-    drawMonitor(buf, 5, dy - 10, Math.min(10, dw - 2), 8);
-    drawKeyboard(buf, 5, dy - 1);
-    drawChair(buf, 5, dy + 6);
+function drawBackWall(buf, gridW, gridD, ox, oy, wallH) {
+  for (let gx = 0; gx < gridW; gx++) {
+    const [x1, y1] = isoToScreen(gx, 0, ox, oy);
+    const [x2, y2] = isoToScreen(gx + 1, 0, ox, oy);
+    const dx = x2 - x1;
+    for (let step = 0; step < Math.max(1, dx); step++) {
+      const t = dx !== 0 ? step / Math.max(1, dx) : 0;
+      const x = x1 + step;
+      const y = Math.floor(y1 + t * (y2 - y1));
+      for (let h = 0; h < wallH; h++) {
+        const frac = h / Math.max(1, wallH - 1);
+        // Brick pattern
+        const bx = (x + (((Math.floor((y - h) / 3)) % 2) ? 3 : 0)) % 6;
+        const by = ((y - h) % 3 + 3) % 3;
+        let c;
+        if (bx === 0 || by === 0) {
+          c = P.STONE_D;
+        } else if (frac > 0.7) {
+          c = P.STONE_L;
+        } else if (frac > 0.3) {
+          c = P.STONE;
+        } else {
+          c = P.STONE_D;
+        }
+        buf.set(x, y - h, c);
+      }
+    }
+    // Top edge highlight
+    for (let step = 0; step < Math.max(1, dx); step++) {
+      const x = x1 + step;
+      const t = dx !== 0 ? step / Math.max(1, dx) : 0;
+      const y = Math.floor(y1 + t * (y2 - y1));
+      buf.set(x, y - wallH, P.STONE_HL);
+    }
   }
-  if (w >= 60) {
-    const d2 = (w / 3 | 0) + 4;
-    drawDesk(buf, d2, dy, dw);
-    drawMonitor(buf, d2 + 2, dy - 10, Math.min(10, dw - 2), 8);
-    drawKeyboard(buf, d2 + 2, dy - 1);
-    drawChair(buf, d2 + 2, dy + 6);
-  }
-  if (w >= 50) {
-    const rh = Math.min(12, ph - fy - 2);
-    if (rh >= 8) drawServerRack(buf, w - 10, fy - rh + 2, rh, fi);
-  }
-  if (ph - fy > 10) drawPlant(buf, 1, fy + 1, fi);
-  if (w >= 55) drawCoffeeMachine(buf, (w >> 1) + 6, fy + 2);
-
-  return { buf, wallH, fy, dy, dw };
 }
 
-// ─── Scene generators ───────────────────────────────────────────────
+function drawLeftWall(buf, gridD, ox, oy, wallH) {
+  for (let gy = 0; gy < gridD; gy++) {
+    const [x1, y1] = isoToScreen(0, gy, ox, oy);
+    const [x2, y2] = isoToScreen(0, gy + 1, ox, oy);
+    const dx = x2 - x1;
+    const steps = Math.max(1, Math.abs(dx));
+    for (let step = 0; step < steps; step++) {
+      const t = step / Math.max(1, steps);
+      const x = Math.floor(x1 + t * dx);
+      const y = Math.floor(y1 + t * (y2 - y1));
+      for (let h = 0; h < wallH; h++) {
+        const frac = h / Math.max(1, wallH - 1);
+        // Left wall darker (shadow side)
+        const bx = (x + (((Math.floor((y - h) / 3)) % 2) ? 3 : 0)) % 6;
+        const by = ((y - h) % 3 + 3) % 3;
+        let c;
+        if (bx === 0 || by === 0) {
+          c = P.COBBLE;
+        } else if (frac > 0.7) {
+          c = P.STONE;
+        } else if (frac > 0.3) {
+          c = P.STONE_D;
+        } else {
+          c = P.COBBLE;
+        }
+        buf.set(x, y - h, c);
+      }
+    }
+  }
+}
+
+// ─── Isometric furniture ────────────────────────────────────────────
+
+function drawIsoDesk(buf, gx, gy, ox, oy) {
+  const [cx, cy] = isoToScreen(gx + 0.5, gy + 0.5, ox, oy);
+  const deskH = 6;
+  const topY = cy - deskH;
+  const hw = Math.floor(TILE_W * 0.7);
+  const hh = TILE_H >> 1;
+
+  // Desk top surface
+  for (let dy = 0; dy < TILE_H; dy++) {
+    let span;
+    if (dy < hh) span = Math.floor((dy + 1) * hw / hh);
+    else span = Math.floor((TILE_H - dy) * hw / hh);
+    for (let dx = -span + 1; dx < span; dx++) {
+      const px = cx + dx;
+      const py = topY - hh + dy;
+      let c;
+      if (dx < 0) c = P.OAK_L;
+      else if (dx > 0) c = P.OAK_D;
+      else c = P.OAK;
+      buf.set(px, py, c);
+    }
+  }
+
+  // Front edge thickness (2px)
+  for (let dy = 1; dy <= 2; dy++) {
+    for (let halfRow = 0; halfRow < hh; halfRow++) {
+      const span = Math.floor((hh - halfRow) * hw / hh);
+      const y = topY + halfRow + dy;
+      for (let dx = 0; dx < span; dx++) buf.set(cx + dx, y, P.OAK_D);
+      for (let dx = -span + 1; dx <= 0; dx++) buf.set(cx + dx, y, P.OAK);
+    }
+  }
+
+  // Legs
+  const legPositions = [
+    [-hw + 2, -hh + 1],
+    [hw - 2, -hh + 1],
+    [-hw + 3, hh - 1],
+    [hw - 3, hh - 1],
+  ];
+  for (const [lx, ly] of legPositions) {
+    const legX = cx + lx;
+    const legY = topY + ly;
+    for (let h = 0; h < deskH - 2; h++) {
+      buf.set(legX, legY + 2 + h, P.OAK_LOG);
+    }
+  }
+}
+
+function drawIsoMonitor(buf, gx, gy, ox, oy, deskH = 6) {
+  const [cx, cy] = isoToScreen(gx + 0.5, gy + 0.5, ox, oy);
+  const baseY = cy - deskH;
+  const monW = 12;
+  const monH = 9;
+  const mx = cx - (monW >> 1);
+  const my = baseY - monH - 2;
+
+  // Stand
+  buf.set(cx, baseY - 2, P.IRON_D);
+  buf.set(cx, baseY - 1, P.IRON_D);
+  buf.set(cx - 1, baseY, P.IRON_D);
+  buf.set(cx, baseY, P.IRON_D);
+  buf.set(cx + 1, baseY, P.IRON_D);
+
+  // Frame
+  buf.fill(mx, my, monW, monH, P.MON_FR);
+  // Glow border
+  buf.fill(mx + 1, my + 1, monW - 2, monH - 2, P.MON_GLOW);
+  // Screen
+  buf.fill(mx + 2, my + 2, monW - 4, monH - 4, P.MON_BG);
+  // Power LED
+  buf.set(mx + monW - 2, my + monH - 1, P.LED_G);
+
+  return [mx + 2, my + 2, monW - 4, monH - 4];
+}
+
+function drawIsoChair(buf, gx, gy, ox, oy) {
+  const [cx, cy] = isoToScreen(gx + 0.5, gy + 0.5, ox, oy);
+  const seatY = cy - 3;
+  const seatHw = 4;
+  const seatHh = 2;
+
+  // Seat diamond
+  for (let dy = 0; dy < 4; dy++) {
+    let span;
+    if (dy < seatHh) span = Math.floor((dy + 1) * seatHw / seatHh);
+    else span = Math.floor((4 - dy) * seatHw / seatHh);
+    for (let dx = -span + 1; dx < span; dx++) {
+      const c = dx < 0 ? P.CH_HL : P.CH;
+      buf.set(cx + dx, seatY - seatHh + dy, c);
+    }
+  }
+
+  // Back rest
+  const backX = cx - 2;
+  const backY = seatY - seatHh - 4;
+  buf.fill(backX, backY, 3, 4, P.CH);
+  buf.set(backX, backY, P.CH_HL);
+
+  // Center post
+  buf.set(cx, cy - 1, P.CH_S);
+  // Wheel base
+  buf.set(cx - 2, cy, P.CH_S);
+  buf.set(cx, cy, P.CH_S);
+  buf.set(cx + 2, cy, P.CH_S);
+}
+
+function drawIsoServerRack(buf, gx, gy, ox, oy, fi) {
+  const [cx, cy] = isoToScreen(gx + 0.5, gy + 0.5, ox, oy);
+  const rackW = 8;
+  const rackH = 16;
+  const rx = cx - (rackW >> 1);
+  const ry = cy - rackH;
+
+  // Main body
+  buf.fill(rx, ry, rackW, rackH, P.IRON_D);
+
+  // Server units
+  for (let row = 1; row < rackH - 1; row += 2) {
+    buf.fill(rx + 1, ry + row, rackW - 2, 1, P.IRON);
+    const colors = [P.LED_G, P.LED_A, P.LED_G, P.LED_O];
+    const led1 = (fi + row) % 4;
+    const led2 = (fi + row + 2) % 4;
+    buf.set(rx + 1, ry + row, colors[led1]);
+    buf.set(rx + rackW - 2, ry + row, colors[led2]);
+  }
+
+  // Top highlight
+  for (let dx = 0; dx < rackW; dx++) {
+    buf.set(rx + dx, ry, P.STONE_HL);
+  }
+}
+
+function drawIsoPlant(buf, gx, gy, ox, oy, fi) {
+  const [cx, cy] = isoToScreen(gx + 0.5, gy + 0.5, ox, oy);
+
+  // Pot
+  buf.fill(cx - 2, cy - 3, 5, 3, P.POT);
+  buf.set(cx - 2, cy - 3, [160, 85, 50]);
+
+  // Stem
+  buf.set(cx, cy - 4, P.LEAF_D);
+  buf.set(cx, cy - 5, P.LEAF_D);
+  buf.set(cx, cy - 6, P.LEAF_D);
+
+  // Leaves (sway)
+  const sway = fi % 8 < 4 ? 1 : 0;
+  buf.set(cx - 1 + sway, cy - 7, P.LEAF_L);
+  buf.set(cx + sway, cy - 7, P.LEAF);
+  buf.set(cx + 1, cy - 7, P.LEAF);
+  buf.set(cx - 2 + sway, cy - 6, P.LEAF);
+  buf.set(cx + 2, cy - 6, P.LEAF_D);
+  buf.set(cx - 1, cy - 5, P.LEAF);
+  buf.set(cx + 1, cy - 5, P.LEAF_D);
+}
+
+// ─── Agent positioning ──────────────────────────────────────────────
+
+function isoAgentPos(gx, gy, ox, oy, spriteH) {
+  const [cx, cy] = isoToScreen(gx + 0.5, gy + 0.5, ox, oy);
+  return [cx - 8, cy - spriteH];
+}
+
+// ─── Main isometric office builder ──────────────────────────────────
+
+function buildIsoOffice(w, ph, fi) {
+  const buf = new PixelBuffer(w, ph);
+
+  // Dynamic grid sizing: fill the screen (matches Python algorithm)
+  const wallFrac = 0.30;
+  const floorBudgetH = Math.floor(ph * (1.0 - wallFrac));
+
+  let totalTilesForWidth = Math.floor((w * 2) / TILE_W);
+  let totalTilesForHeight = Math.floor((floorBudgetH * 2) / TILE_H);
+  let totalTiles = Math.min(totalTilesForWidth, totalTilesForHeight);
+  totalTiles = Math.max(totalTiles, 4);
+
+  let gridW = Math.max(2, Math.floor(totalTiles * 0.55));
+  let gridD = Math.max(2, totalTiles - gridW);
+
+  while ((gridW + gridD) * TILE_W / 2 > w && gridW + gridD > 3) {
+    if (gridW > gridD) gridW--;
+    else gridD--;
+  }
+
+  const floorPixelH = Math.floor((gridW + gridD) * TILE_H / 2);
+  const wallPixelH = Math.max(8, ph - floorPixelH - 2);
+  const originX = Math.floor(w / 2 - (gridW - gridD) * TILE_W / 4);
+  const originY = ph - floorPixelH - 1;
+
+  // Draw walls first (behind everything)
+  drawBackWall(buf, gridW, gridD, originX, originY, wallPixelH);
+  drawLeftWall(buf, gridD, originX, originY, wallPixelH);
+
+  // Draw floor
+  drawIsoFloor(buf, gridW, gridD, originX, originY);
+
+  // Furniture — placed relative to grid, scales with room size
+  const desk1Gx = 1.0;
+  const desk1Gy = 1.0;
+  drawIsoDesk(buf, desk1Gx, desk1Gy, originX, originY);
+  const mon1Rect = drawIsoMonitor(buf, desk1Gx, desk1Gy, originX, originY);
+  drawIsoChair(buf, desk1Gx, desk1Gy + 1.2, originX, originY);
+
+  // Desk 2: offset to the right
+  const desk2Gx = Math.min(gridW - 2.0, Math.max(3.0, gridW * 0.5));
+  const desk2Gy = 1.0;
+  let mon2Rect = [0, 0, 0, 0];
+  if (w >= 50) {
+    drawIsoDesk(buf, desk2Gx, desk2Gy, originX, originY);
+    mon2Rect = drawIsoMonitor(buf, desk2Gx, desk2Gy, originX, originY);
+    drawIsoChair(buf, desk2Gx, desk2Gy + 1.2, originX, originY);
+  }
+
+  // Server rack (back-right area)
+  if (w >= 50) {
+    drawIsoServerRack(buf, gridW - 1.5, 0.5, originX, originY, fi);
+  }
+
+  // Plant (front-left area)
+  const plantGy = Math.min(gridD - 1.0, Math.max(2.0, gridD * 0.7));
+  drawIsoPlant(buf, 0.0, plantGy, originX, originY, fi);
+
+  const layout = {
+    originX,
+    originY,
+    gridW,
+    gridD,
+    wallH: wallPixelH,
+    desk1Gx,
+    desk1Gy,
+    desk2Gx,
+    desk2Gy,
+    mon1Rect,
+    mon2Rect,
+    agent1Gx: desk1Gx,
+    agent1Gy: desk1Gy + 0.8,
+    agent2Gx: desk2Gx,
+    agent2Gy: desk2Gy + 0.8,
+  };
+
+  return { buf, layout };
+}
+
+// ─── Scene generators (isometric) ───────────────────────────────────
 
 function genThinking(w, h, n = 8) {
   const ph = h * 2;
@@ -724,20 +904,35 @@ function genThinking(w, h, n = 8) {
       map: { O: P.THOUGHT_D, L: P.THOUGHT, G: P.GLOW, '.': null } },
   ];
   const bSeq = [0, 0, 1, 1, 2, 2, 0, 1];
+  const spriteH = SP.sitThink.length;
+
   return Array.from({ length: n }, (_, fi) => {
-    const { buf, fy, dy } = buildOffice(w, ph, fi);
-    const ay = dy - 20 + 1;
+    const { buf, layout } = buildIsoOffice(w, ph, fi);
+    const ox = layout.originX;
+    const oy = layout.originY;
+
+    // Agent 1 thinking at desk
     if (w >= 40) {
-      buf.sprite(SP.sitThink, A1, 5, ay);
+      const [ax, ay] = isoAgentPos(layout.agent1Gx, layout.agent1Gy, ox, oy, spriteH);
+      buf.sprite(SP.sitThink, A1, ax, ay);
+
+      // Thought bubble above agent
       const b = bubbles[bSeq[fi % bSeq.length]];
       const by = Math.max(0, ay - b.art.length - 1);
-      buf.sprite(b.art, b.map, 2, by);
+      buf.sprite(b.art, b.map, ax - 2, by);
     }
+
+    // Agent 2 idle at desk 2
     if (w >= 60) {
-      const d2 = (w / 3 | 0) + 4;
-      buf.sprite(SP.sit, A2, d2 + 3, dy - 20 + 1);
-      buf.set(d2 + 4, dy - 8, fi % 2 === 0 ? P.MON_GR : P.MON_BG);
+      const [ax2, ay2] = isoAgentPos(layout.agent2Gx, layout.agent2Gy, ox, oy, SP.sit.length);
+      buf.sprite(SP.sit, A2, ax2, ay2);
+
+      // Cursor blink on monitor 2
+      const [mx, my] = layout.mon2Rect;
+      if (fi % 2 === 0) buf.set(mx + 1, my + 1, P.MON_GR);
+      else buf.set(mx + 1, my + 1, P.MON_BG);
     }
+
     return buf;
   });
 }
@@ -747,28 +942,43 @@ function genCoding(w, h, n = 8) {
   const rng = (s) => ((s * 1103515245 + 12345) & 0x7fffffff) % 256;
   const cc = [P.MON_GR, P.MON_YL, P.MON_WH, P.MON_CY];
   const types = [SP.sitL, SP.sitR, SP.sitBoth, SP.sit];
+  const spriteH = SP.sit.length;
+
   return Array.from({ length: n }, (_, fi) => {
-    const { buf, fy, dy, dw } = buildOffice(w, ph, fi);
-    const ay = dy - 20 + 1;
+    const { buf, layout } = buildIsoOffice(w, ph, fi);
+    const ox = layout.originX;
+    const oy = layout.originY;
+
+    // Agent 1 typing at desk 1
     if (w >= 40) {
-      buf.sprite(types[fi % types.length], A1, 5, ay);
-      const mx = 7, my = dy - 8, mw = Math.min(6, dw - 4);
-      for (let r = 0; r < Math.min(4, 4); r++)
+      const agent = types[fi % types.length];
+      const [ax, ay] = isoAgentPos(layout.agent1Gx, layout.agent1Gy, ox, oy, agent.length);
+      buf.sprite(agent, A1, ax, ay);
+
+      // Code on monitor 1
+      const [mx, my, mw, mh] = layout.mon1Rect;
+      for (let r = 0; r < Math.min(mh, 4); r++)
         for (let c = 0; c < mw; c++) {
           const seed = rng(fi * 100 + r * 10 + c);
           if (seed > 70) buf.set(mx + c, my + r, cc[seed % cc.length]);
         }
     }
+
+    // Agent 2 typing at desk 2
     if (w >= 60) {
-      const d2 = (w / 3 | 0) + 4;
-      buf.sprite(types[(fi + 2) % types.length], A2, d2 + 3, ay);
-      const mx = d2 + 4, my = dy - 8, mw = Math.min(6, dw - 4);
-      for (let r = 0; r < 4; r++)
-        for (let c = 0; c < mw; c++) {
+      const agent2 = types[(fi + 2) % types.length];
+      const [ax2, ay2] = isoAgentPos(layout.agent2Gx, layout.agent2Gy, ox, oy, agent2.length);
+      buf.sprite(agent2, A2, ax2, ay2);
+
+      // Code on monitor 2
+      const [mx2, my2, mw2, mh2] = layout.mon2Rect;
+      for (let r = 0; r < Math.min(mh2, 4); r++)
+        for (let c = 0; c < mw2; c++) {
           const seed = rng((fi + 3) * 100 + r * 10 + c);
-          if (seed > 50) buf.set(mx + c, my + r, cc[seed % cc.length]);
+          if (seed > 50) buf.set(mx2 + c, my2 + r, cc[seed % cc.length]);
         }
     }
+
     return buf;
   });
 }
@@ -784,47 +994,77 @@ function genDebugging(w, h, n = 8) {
     'OOOOOOOOOOO.',
   ];
   const warnMap = { Y: P.WARN_Y, R: P.WARN_R, O: P.OL, '0': P.OL, '.': null };
+
   return Array.from({ length: n }, (_, fi) => {
-    const { buf, wallH, fy, dy, dw } = buildOffice(w, ph, fi);
-    // Whiteboard
-    const wbW = Math.min(16, w / 4 | 0), wbH = Math.min(10, wallH - 3);
-    const wx = w / 3 | 0;
-    if (wbW >= 8 && wbH >= 6 && w >= 45) {
-      buf.fill(wx, 1, wbW, wbH, P.BIRCH);
-      for (let dx = 0; dx < wbW; dx++) { buf.set(wx + dx, 1, P.MON_FR); buf.set(wx + dx, wbH, P.MON_FR); }
-      for (let d = 0; d < wbH; d++) { buf.set(wx, 1 + d, P.MON_FR); buf.set(wx + wbW - 1, 1 + d, P.MON_FR); }
-      // Boxes + arrow
-      buf.fill(wx + 2, 3, 4, 3, [220, 220, 220]);
-      for (let dx = 0; dx < 4; dx++) buf.set(wx + 2 + dx, 3, P.MON_RD);
-      for (let dx = 6; dx < Math.min(wbW - 4, 10); dx++) buf.set(wx + dx, 4, P.WARN_R);
-      if (wbW > 12) buf.fill(wx + wbW - 6, 3, 4, 3, P.WARN_R);
-    }
-    // Agent pointing
-    if (w >= 45) {
-      const ptr = fi % 2 === 0 ? SP.point : SP.stand;
-      buf.sprite(ptr, A1, wx - 4 >= 0 ? wx - 4 : 10, fy - 16);
-    }
-    // Agent examining
-    if (w >= 40) {
-      const ex = fi % 2 === 0 ? SP.examine : SP.stand;
-      buf.sprite(ex, A2, 5, dy - 20 + 1);
-      const mx = 7, my = dy - 8;
-      for (let r = 0; r < 4; r++)
-        for (let c = 0; c < Math.min(6, dw - 4); c++)
-          if ((c + fi) % 4 === 0) buf.set(mx + c, my + r, P.MON_RD);
-          else if ((c + r + fi) % 6 === 0) buf.set(mx + c, my + r, P.WARN_Y);
-    }
-    // Warning triangle
-    if (w >= 50 && fi % 3 !== 2) buf.sprite(warnArt, warnMap, w / 2 | 0, 0);
-    // Server LEDs red
-    if (w >= 50) {
-      const rx = w - 10, rh = Math.min(12, ph - fy - 2), ry = fy - rh + 2;
-      for (let r = 1; r < rh - 1; r += 2) {
-        const led = (fi + r) % 2 === 0 ? P.LED_R : P.LED_O;
-        buf.set(rx + 1, ry + r, led); buf.set(rx + 4, ry + r, led);
+    const { buf, layout } = buildIsoOffice(w, ph, fi);
+    const ox = layout.originX;
+    const oy = layout.originY;
+    const wallH = layout.wallH;
+
+    // Whiteboard on wall area
+    const wbW = Math.min(14, Math.floor(w / 5));
+    const wbH = Math.min(8, wallH - 2);
+    if (wbW >= 8 && wbH >= 5) {
+      const wbX = ox - Math.floor(wbW / 2);
+      const wbY = Math.max(1, oy - wallH + 2);
+      // Board
+      buf.fill(wbX, wbY, wbW, wbH, P.BIRCH);
+      // Frame
+      for (let dx = 0; dx < wbW; dx++) { buf.set(wbX + dx, wbY, P.MON_FR); buf.set(wbX + dx, wbY + wbH - 1, P.MON_FR); }
+      for (let dy = 0; dy < wbH; dy++) { buf.set(wbX, wbY + dy, P.MON_FR); buf.set(wbX + wbW - 1, wbY + dy, P.MON_FR); }
+      // Diagram: boxes + arrow
+      const boxY = wbY + 2;
+      buf.fill(wbX + 2, boxY, 3, 2, [220, 220, 220]);
+      for (let dx = 5; dx < Math.min(wbW - 4, 9); dx++) buf.set(wbX + dx, boxY + 1, P.WARN_R);
+      if (wbW > 10) buf.fill(wbX + wbW - 5, boxY, 3, 2, P.WARN_R);
+      // Error lines
+      for (let dy = boxY + 3; dy < wbY + wbH - 1; dy++) {
+        const lineLen = ((dy + fi) * 3) % (wbW - 3) + 1;
+        for (let dx = 1; dx < Math.min(1 + lineLen, wbW - 1); dx++) {
+          if ((dx + fi) % 3 !== 0) buf.set(wbX + dx, dy, P.MON_RD);
+        }
       }
     }
-    // Selective red tint
+
+    // Agent 1 pointing
+    if (w >= 40) {
+      const ptr = fi % 2 === 0 ? SP.point : SP.stand;
+      const [ax, ay] = isoAgentPos(
+        layout.desk1Gx - 0.5, layout.desk1Gy - 0.3,
+        ox, oy, ptr.length,
+      );
+      buf.sprite(ptr, A1, ax, ay);
+    }
+
+    // Agent 2 examining monitor
+    if (w >= 60) {
+      const ex = fi % 2 === 0 ? SP.examine : SP.stand;
+      const [ax2, ay2] = isoAgentPos(layout.agent2Gx, layout.agent2Gy, ox, oy, ex.length);
+      buf.sprite(ex, A2, ax2, ay2);
+
+      // Error text on monitor 2
+      const [mx2, my2, mw2, mh2] = layout.mon2Rect;
+      for (let dy = 0; dy < mh2; dy++)
+        for (let dx = 0; dx < mw2; dx++) {
+          if ((dx + fi) % 4 === 0) buf.set(mx2 + dx, my2 + dy, P.MON_RD);
+          else if ((dx + dy + fi) % 6 === 0) buf.set(mx2 + dx, my2 + dy, P.WARN_Y);
+        }
+    }
+
+    // Error text on monitor 1
+    const [mx1, my1, mw1, mh1] = layout.mon1Rect;
+    for (let dy = 0; dy < mh1; dy++)
+      for (let dx = 0; dx < mw1; dx++) {
+        if ((dx + fi) % 4 === 0) buf.set(mx1 + dx, my1 + dy, P.MON_RD);
+        else if ((dx + dy + fi) % 6 === 0) buf.set(mx1 + dx, my1 + dy, P.WARN_Y);
+      }
+
+    // Warning triangle (blinks)
+    if (fi % 3 !== 2) {
+      buf.sprite(warnArt, warnMap, Math.floor(w / 2) - 5, 0);
+    }
+
+    // Red tint
     for (let y = 0; y < buf.h; y++)
       for (let x = 0; x < buf.w; x++) {
         const [r, g, b] = buf.px[y][x];
@@ -833,6 +1073,7 @@ function genDebugging(w, h, n = 8) {
         else
           buf.px[y][x] = [Math.min(255, r + 12), Math.max(0, g - 5), Math.max(0, b - 5)];
       }
+
     return buf;
   });
 }
@@ -846,50 +1087,87 @@ function genRunning(w, h, n = 8) {
     ['..OGGO..', '.OLLLLO.', 'OLLggLLO', 'OLgggLLO', 'OLLgggLO', 'OLLggLLO', '.OLLLLO.', '..OGGO..'],
     ['.OG..GO.', '.OGLLLLO', 'OLLggLO.', 'OLLggLLO', 'OLLggLLO', '.OLggLLO', 'OLLLLGO.', '.OG..GO.'],
   ];
+
   return Array.from({ length: n }, (_, fi) => {
-    const { buf, wallH, fy, dy, dw } = buildOffice(w, ph, fi);
-    // Control panel
-    const pw = Math.min(16, w / 4 | 0), pHeight = Math.min(8, wallH - 3), px = w / 3 | 0;
-    if (pw >= 8 && pHeight >= 5) {
-      buf.fill(px, 1, pw, pHeight, P.IRON_D);
-      buf.fill(px + 1, 2, pw - 2, pHeight - 2, P.IRON);
-      for (let dx = 1; dx < pw - 1; dx++) buf.set(px + dx, 2, [220, 220, 225]);
-      for (let bx = 2; bx < pw - 2; bx += 3)
-        for (let by = 2; by < Math.min(pHeight - 1, 6); by++) {
-          const s = (fi + bx + by * pw) % 5;
+    const { buf, layout } = buildIsoOffice(w, ph, fi);
+    const ox = layout.originX;
+    const oy = layout.originY;
+    const wallH = layout.wallH;
+
+    // Control panel on wall area
+    const panelW = Math.min(14, Math.floor(w / 5));
+    const panelH = Math.min(7, wallH - 2);
+    if (panelW >= 8 && panelH >= 5) {
+      const panelX = ox - Math.floor(panelW / 2) + 10;
+      const panelY = Math.max(1, oy - wallH + 2);
+      buf.fill(panelX, panelY, panelW, panelH, P.IRON_D);
+      buf.fill(panelX + 1, panelY + 1, panelW - 2, panelH - 2, P.IRON);
+      for (let dx = 1; dx < panelW - 1; dx++) buf.set(panelX + dx, panelY + 1, [220, 220, 225]);
+      for (let bx = 2; bx < panelW - 2; bx += 3)
+        for (let by = 2; by < Math.min(panelH - 1, 6); by++) {
+          const idx = bx + by * panelW;
+          const state = (fi + idx) % 5;
           const colors = [P.LED_G, P.LED_A, P.LED_G, P.LED_G, P.LED_O];
-          buf.set(px + bx, 1 + by, colors[s]);
-          buf.set(px + bx + 1, 1 + by, P.IRON_D);
+          buf.set(panelX + bx, panelY + by, colors[state]);
+          buf.set(panelX + bx + 1, panelY + by, P.IRON_D);
         }
     }
-    // Agent pushing
-    const pushes = [SP.push1, SP.push2, SP.stand];
-    buf.sprite(pushes[fi % pushes.length], A1, px - 4 >= 0 ? px - 4 : 10, fy - 16);
-    // Gear
-    if (w >= 55) {
-      const gx = (w >> 1) + 10, gy = fy - 8;
-      buf.sprite(gears[fi % gears.length], gMap, gx, gy);
-    }
-    // Progress bar
+
+    // Agent pushing buttons
     if (w >= 40) {
-      const bw = Math.min(24, w / 3 | 0), bx = 4, by = ph - 5;
-      buf.fill(bx - 1, by - 1, bw + 2, 4, P.PROG_FR);
-      buf.fill(bx, by, bw, 2, P.PROG_BG);
-      const fill = ((fi + 1) * bw / n) | 0;
+      const pushes = [SP.push1, SP.push2, SP.stand];
+      const agent = pushes[fi % pushes.length];
+      const [ax, ay] = isoAgentPos(
+        layout.desk1Gx + 0.5, layout.desk1Gy - 0.3,
+        ox, oy, agent.length,
+      );
+      buf.sprite(agent, A1, ax, ay);
+    }
+
+    // Gear animation (on floor, right side)
+    if (w >= 55) {
+      const gear = gears[fi % gears.length];
+      const [gearX, gearY] = isoToScreen(layout.gridW - 2.0, layout.gridD - 2.0, ox, oy);
+      buf.sprite(gear, gMap, gearX - 4, gearY - gear.length);
+    }
+
+    // Log on monitor 1
+    const [mx1, my1, mw1, mh1] = layout.mon1Rect;
+    for (let dy = 0; dy < mh1; dy++) {
+      const lineLen = ((dy + fi) * 3) % Math.max(1, mw1) + 1;
+      for (let dx = 0; dx < Math.min(lineLen, mw1); dx++) {
+        const c = (dy + fi) % 3 !== 0 ? P.MON_GR : P.MON_WH;
+        buf.set(mx1 + dx, my1 + dy, c);
+      }
+    }
+
+    // Log on monitor 2
+    if (w >= 60) {
+      const [mx2, my2, mw2, mh2] = layout.mon2Rect;
+      for (let dy = 0; dy < mh2; dy++) {
+        const lineLen = ((dy + fi + 3) * 3) % Math.max(1, mw2) + 1;
+        for (let dx = 0; dx < Math.min(lineLen, mw2); dx++) {
+          const c = (dy + fi + 3) % 3 !== 0 ? P.MON_GR : P.MON_WH;
+          buf.set(mx2 + dx, my2 + dy, c);
+        }
+      }
+    }
+
+    // Progress bar at bottom
+    if (w >= 40) {
+      const barW = Math.min(24, Math.floor(w / 3));
+      const barX = Math.floor((w - barW) / 2);
+      const barY = ph - 4;
+      buf.fill(barX - 1, barY - 1, barW + 2, 4, P.PROG_FR);
+      buf.fill(barX, barY, barW, 2, P.PROG_BG);
+      const fill = Math.floor(((fi + 1) * barW) / n);
       for (let dx = 0; dx < fill; dx++) {
         const c = dx === fill - 1 ? [100, 255, 100] : dx === fill - 2 ? [70, 240, 70] : P.PROG_G;
-        buf.set(bx + dx, by, c); buf.set(bx + dx, by + 1, c);
+        buf.set(barX + dx, barY, c);
+        buf.set(barX + dx, barY + 1, c);
       }
     }
-    // Log on monitor
-    if (w >= 40) {
-      const mx = 7, my = dy - 8;
-      for (let r = 0; r < 4; r++) {
-        const len = ((r + fi) * 3) % Math.max(1, dw - 4) + 1;
-        for (let c = 0; c < Math.min(len, 6); c++)
-          buf.set(mx + c, my + r, (r + fi) % 3 !== 0 ? P.MON_GR : P.MON_WH);
-      }
-    }
+
     return buf;
   });
 }
@@ -897,64 +1175,96 @@ function genRunning(w, h, n = 8) {
 function genBuilding(w, h, n = 8) {
   const ph = h * 2;
   const bColors = [P.GOLD, P.LAPIS, P.RED, P.EMERALD, P.DIAMOND];
+
   return Array.from({ length: n }, (_, fi) => {
-    const { buf, fy } = buildOffice(w, ph, fi);
-    const cw = Math.min(w - 14, (w * 2 / 3) | 0), cx = 4, cy = fy + 5;
-    // Conveyor
-    if (cw >= 12) {
-      for (let dx = 0; dx < cw; dx++) {
+    const { buf, layout } = buildIsoOffice(w, ph, fi);
+    const ox = layout.originX;
+    const oy = layout.originY;
+
+    // Conveyor belt across the floor area
+    const convW = Math.min(w - 14, Math.floor(w * 2 / 3));
+    const convX = Math.floor((w - convW) / 2);
+    const floorScreenY = oy + Math.floor((layout.gridW + layout.gridD) * 4 / 2);
+    const convY = Math.min(floorScreenY - 2, ph - 10);
+
+    if (convW >= 12) {
+      // Conveyor belt
+      for (let dx = 0; dx < convW; dx++) {
         const m = (dx + fi) % 4;
-        buf.set(cx + dx, cy, m === 0 ? P.CONV_D : m === 1 ? P.CONV_L : P.CONV);
-        buf.set(cx + dx, cy + 1, m === 0 ? P.CONV_D : P.CONV);
+        buf.set(convX + dx, convY, m === 0 ? P.CONV_D : m === 1 ? P.CONV_L : P.CONV);
+        buf.set(convX + dx, convY + 1, m === 0 ? P.CONV_D : P.CONV);
       }
-      for (let dx = 0; dx < cw; dx++) { buf.set(cx + dx, cy - 1, P.STONE_D); buf.set(cx + dx, cy + 2, P.STONE_D); }
-      for (let dx = 0; dx < cw; dx += 8)
-        for (let dy = 3; dy < 6; dy++) { buf.set(cx + dx, cy + dy, P.STONE_D); buf.set(cx + dx + 1, cy + dy, P.STONE_D); }
+      // Side rails
+      for (let dx = 0; dx < convW; dx++) {
+        buf.set(convX + dx, convY - 1, P.STONE_D);
+        buf.set(convX + dx, convY + 2, P.STONE_D);
+      }
+      // Supports
+      for (let dx = 0; dx < convW; dx += 8)
+        for (let dy = 3; dy < 6; dy++) {
+          buf.set(convX + dx, convY + dy, P.STONE_D);
+          buf.set(convX + dx + 1, convY + dy, P.STONE_D);
+        }
     }
-    // Carrier
-    if (cw >= 12) {
-      const ax = cx + ((fi * 5) % Math.max(1, cw - 16));
-      buf.sprite(CARRY1, CARRY_MAP, ax, cy - 21);
+
+    // Carrier agent walking along conveyor
+    if (convW >= 12) {
+      const agentX = convX + ((fi * 5) % Math.max(1, convW - 16));
+      buf.sprite(CARRY1, CARRY_MAP, agentX, convY - CARRY1.length - 1);
     }
-    // Second agent
-    if (w >= 55 && cw >= 12) {
-      const wx2 = cx + cw - ((fi * 4) % Math.max(1, cw - 16)) - 16;
-      buf.sprite(fi % 2 === 0 ? SP.walk1 : SP.walk2, A1, Math.max(cx, wx2), cy - 21);
+
+    // Second agent walking opposite direction
+    if (w >= 55 && convW >= 12) {
+      const wx2 = convX + convW - ((fi * 4) % Math.max(1, convW - 16)) - 16;
+      const walkSprite = fi % 2 === 0 ? SP.walk1 : SP.walk2;
+      buf.sprite(walkSprite, A1, Math.max(convX, wx2), convY - walkSprite.length - 1);
     }
-    // Blocks on belt
-    if (cw >= 24) {
+
+    // Code blocks on conveyor
+    if (convW >= 24) {
       for (let i = 0; i < 3; i++) {
-        const bx = cx + 6 + ((fi * 5 + i * 10) % Math.max(1, cw - 10));
+        const bx = convX + 6 + ((fi * 5 + i * 10) % Math.max(1, convW - 10));
+        const by = convY - 5;
         const bc = bColors[(fi + i) % bColors.length];
         const shade = [Math.max(0, bc[0] - 40), Math.max(0, bc[1] - 40), Math.max(0, bc[2] - 40)];
         const light = [Math.min(255, bc[0] + 30), Math.min(255, bc[1] + 30), Math.min(255, bc[2] + 30)];
-        buf.fill(bx, cy - 5, 5, 5, bc);
-        for (let dx = 0; dx < 5; dx++) buf.set(bx + dx, cy - 5, light);
-        for (let dy = 0; dy < 5; dy++) buf.set(bx, cy - 5 + dy, light);
-        for (let dx = 0; dx < 5; dx++) buf.set(bx + dx, cy - 1, shade);
-        for (let dy = 0; dy < 5; dy++) buf.set(bx + 4, cy - 5 + dy, shade);
+        buf.fill(bx, by, 5, 5, bc);
+        for (let dx = 0; dx < 5; dx++) buf.set(bx + dx, by, light);
+        for (let dy = 0; dy < 5; dy++) buf.set(bx, by + dy, light);
+        for (let dx = 0; dx < 5; dx++) buf.set(bx + dx, by + 4, shade);
+        for (let dy = 0; dy < 5; dy++) buf.set(bx + 4, by + dy, shade);
       }
     }
-    // Stack
+
+    // Block stack accumulating
     if (w >= 50) {
-      const sx = w - 14, sy = fy + 4, cnt = Math.min(fi + 1, 4);
-      for (let i = 0; i < cnt; i++) {
+      const stackX = convX + convW + 2;
+      const stackY = convY;
+      const stackCount = Math.min(fi + 1, 4);
+      for (let i = 0; i < stackCount; i++) {
         const bc = bColors[i % bColors.length];
         const shade = [Math.max(0, bc[0] - 40), Math.max(0, bc[1] - 40), Math.max(0, bc[2] - 40)];
         const light = [Math.min(255, bc[0] + 30), Math.min(255, bc[1] + 30), Math.min(255, bc[2] + 30)];
-        buf.fill(sx, sy - i * 5, 5, 5, bc);
-        for (let dx = 0; dx < 5; dx++) buf.set(sx + dx, sy - i * 5, light);
-        for (let dy = 0; dy < 5; dy++) buf.set(sx + 4, sy - i * 5 + dy, shade);
+        buf.fill(stackX, stackY - i * 5, 5, 5, bc);
+        for (let dx = 0; dx < 5; dx++) buf.set(stackX + dx, stackY - i * 5, light);
+        for (let dy = 0; dy < 5; dy++) buf.set(stackX + 4, stackY - i * 5 + dy, shade);
       }
     }
-    // Progress
+
+    // Progress bar at bottom
     if (w >= 40) {
-      const bw = Math.min(20, w / 3 | 0), bx = 4, by = ph - 5;
-      buf.fill(bx - 1, by - 1, bw + 2, 4, P.PROG_FR);
-      buf.fill(bx, by, bw, 2, P.PROG_BG);
-      const fill = ((fi + 1) * bw / n) | 0;
-      for (let dx = 0; dx < fill; dx++) { buf.set(bx + dx, by, P.PROG_G); buf.set(bx + dx, by + 1, P.PROG_G); }
+      const barW = Math.min(20, Math.floor(w / 3));
+      const barX = Math.floor((w - barW) / 2);
+      const barY = ph - 4;
+      buf.fill(barX - 1, barY - 1, barW + 2, 4, P.PROG_FR);
+      buf.fill(barX, barY, barW, 2, P.PROG_BG);
+      const fill = Math.floor(((fi + 1) * barW) / n);
+      for (let dx = 0; dx < fill; dx++) {
+        buf.set(barX + dx, barY, P.PROG_G);
+        buf.set(barX + dx, barY + 1, P.PROG_G);
+      }
     }
+
     return buf;
   });
 }
@@ -965,18 +1275,25 @@ function genIdle(w, h, n = 8) {
   const chatB = ['.OOOOOOO..', 'OLLLWLLLO.', 'OLLWWLLLO.', 'OLLLWLLLO.', '.OOOOOOO..', '.......OO.', '........OO'];
   const chatMapA = { O: P.THOUGHT_D, L: P.THOUGHT, T: P.THOUGHT_L, '.': null };
   const chatMapB = { O: P.THOUGHT_D, L: P.THOUGHT, W: P.MON_WH, '.': null };
+
   return Array.from({ length: n }, (_, fi) => {
-    const { buf, fy, dy } = buildOffice(w, ph, fi);
-    const ay = dy - 20 + 1;
-    // Agent drinking
+    const { buf, layout } = buildIsoOffice(w, ph, fi);
+    const ox = layout.originX;
+    const oy = layout.originY;
+
+    // Agent 1 drinking coffee
     if (w >= 40) {
       const drinks = [SP.drink1, SP.drink2, SP.drink1];
-      buf.sprite(drinks[fi % drinks.length], DRINK_MAP, 5, ay);
-      // Steam
+      const drinker = drinks[fi % drinks.length];
+      const [ax, ay] = isoAgentPos(layout.agent1Gx, layout.agent1Gy, ox, oy, drinker.length);
+      buf.sprite(drinker, DRINK_MAP, ax, ay);
+
+      // Steam from mug
       const parts = [[0, 0], [1, -1], [-1, -2], [0, -3], [1, -4], [-1, -5]];
       for (let i = 0; i < parts.length; i++) {
         const [dx, ddy] = parts[i];
-        const py = ay - 2 + ddy - (fi % 4), ppx = 18 + dx + ((fi + i) % 3 - 1);
+        const py = ay - 2 + ddy - (fi % 4);
+        const ppx = ax + 12 + dx + ((fi + i) % 3 - 1);
         if (py >= 0 && ppx >= 0 && ppx < buf.w) {
           const fade = Math.abs(ddy) + fi % 4;
           buf.set(ppx, py, fade < 3 ? P.STEAM : P.STEAM_F);
@@ -984,32 +1301,29 @@ function genIdle(w, h, n = 8) {
         }
       }
     }
-    // Agent leaning
+
+    // Agent 2 leaning / idle
     if (w >= 60) {
-      const d2 = (w / 3 | 0) + 4;
-      buf.sprite(fi % 4 < 2 ? SP.lean : SP.sit, A2, d2 + 3, ay);
+      const agent2 = fi % 4 < 2 ? SP.lean : SP.sit;
+      const [ax2, ay2] = isoAgentPos(layout.agent2Gx, layout.agent2Gy, ox, oy, agent2.length);
+      buf.sprite(agent2, A2, ax2, ay2);
     }
+
     // Chat bubbles
     if (w >= 55) {
       if (fi % 4 < 2) {
-        const by = Math.max(0, ay - 7);
-        buf.sprite(chatA, chatMapA, 20, by);
-      } else if (fi % 4 === 2) {
-        const d2 = (w / 3 | 0) + 4;
-        const by = Math.max(0, ay - 7);
-        buf.sprite(chatB, chatMapB, d2 + 16, by);
+        const drinkerH = SP.drink1.length;
+        const [ax, ay] = isoAgentPos(layout.agent1Gx, layout.agent1Gy, ox, oy, drinkerH);
+        const bubY = Math.max(0, ay - chatA.length - 2);
+        buf.sprite(chatA, chatMapA, ax + 14, bubY);
+      } else if (fi % 4 === 2 && w >= 60) {
+        const leanH = SP.lean.length;
+        const [ax2, ay2] = isoAgentPos(layout.agent2Gx, layout.agent2Gy, ox, oy, leanH);
+        const bubY = Math.max(0, ay2 - chatB.length - 2);
+        buf.sprite(chatB, chatMapB, ax2 + 14, bubY);
       }
     }
-    // Steam from coffee machine
-    if (w >= 55) {
-      const cmx = (w >> 1) + 8, cmy = fy;
-      for (let i = 0; i < 3; i++) {
-        const py = cmy - (fi % 3) - i;
-        if (py >= 0) {
-          buf.set(cmx + ((fi + i) % 2), py, i < 2 ? P.STEAM : P.STEAM_F);
-        }
-      }
-    }
+
     return buf;
   });
 }
