@@ -24,6 +24,7 @@ import ctypes.util
 import glob
 import json
 import os
+import select
 import struct
 import threading
 import time
@@ -184,10 +185,7 @@ def _inotify_watcher(watch_dir: str) -> None:
 
         buf_size = 4096
         while not _stop_event.is_set():
-            # Use select to avoid blocking forever
-            import select
-
-            rlist, _, _ = select.select([fd], [], [], 1.0)
+            rlist, _, _ = select.select([fd], [], [], 0.25)
             if not rlist:
                 continue
             data = os.read(fd, buf_size)
@@ -205,7 +203,7 @@ def _process_inotify_events(data: bytes) -> None:
         # struct inotify_event: int wd, uint32_t mask, uint32_t cookie, uint32_t len
         if offset + 16 > len(data):
             break
-        _wd, mask, _cookie, name_len = struct.unpack_from("iIII", data, offset)
+        _wd, mask, _cookie, name_len = struct.unpack_from("=iIII", data, offset)
         offset += 16
 
         name_bytes = data[offset : offset + name_len]
@@ -248,7 +246,7 @@ def _classify_fs_event(mask: int, name: str) -> str:
     if mask & IN_MODIFY:
         return "coding"
 
-    return "coding"
+    return "idle"
 
 
 # ---------------------------------------------------------------------------
@@ -260,7 +258,7 @@ def _log_watcher() -> None:
     while not _stop_event.is_set():
         try:
             _scan_claude_logs()
-        except Exception:
+        except (OSError, json.JSONDecodeError, ValueError):
             pass
         # Don't scan too aggressively
         _stop_event.wait(3.0)

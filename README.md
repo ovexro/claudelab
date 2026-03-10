@@ -55,14 +55,11 @@ A visual terminal companion for [Claude Code](https://docs.anthropic.com/en/docs
 
 ## Installation
 
-```bash
-pip install claudelab
-```
+Install from source (PyPI package coming soon):
 
-Or install from source:
 
 ```bash
-git clone https://github.com/youruser/claudelab.git
+git clone https://github.com/ovexro/claudelab.git
 cd claudelab
 pip install -e .
 ```
@@ -124,7 +121,7 @@ HOOK_PATH="$(python -c 'import claudelab, pathlib; print(pathlib.Path(claudelab.
 HOOK_PATH="/path/to/claudelab/hooks/claudelab-hook.sh"
 ```
 
-2. Add the hook to `~/.claude/hooks.json`:
+2. Add the hook to your Claude Code settings. Create or edit `~/.claude/hooks.json`:
 
 ```json
 {
@@ -133,7 +130,10 @@ HOOK_PATH="/path/to/claudelab/hooks/claudelab-hook.sh"
       {
         "matcher": "",
         "hooks": [
-          "bash /path/to/claudelab-hook.sh pre $TOOL_NAME"
+          {
+            "type": "command",
+            "command": "/path/to/claudelab-hook.sh"
+          }
         ]
       }
     ],
@@ -141,7 +141,21 @@ HOOK_PATH="/path/to/claudelab/hooks/claudelab-hook.sh"
       {
         "matcher": "",
         "hooks": [
-          "bash /path/to/claudelab-hook.sh post $TOOL_NAME $EXIT_CODE"
+          {
+            "type": "command",
+            "command": "/path/to/claudelab-hook.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/path/to/claudelab-hook.sh"
+          }
         ]
       }
     ]
@@ -149,7 +163,7 @@ HOOK_PATH="/path/to/claudelab/hooks/claudelab-hook.sh"
 }
 ```
 
-Replace `/path/to/claudelab-hook.sh` with the actual path from step 1.
+Replace `/path/to/claudelab-hook.sh` with the actual path from step 1. The hook receives JSON on stdin from Claude Code containing `hook_event_name` and `tool_name`.
 
 3. Restart Claude Code. ClaudeLab will now receive real-time activity updates.
 
@@ -193,7 +207,7 @@ Contributions are welcome! Some ideas:
 To develop:
 
 ```bash
-git clone https://github.com/youruser/claudelab.git
+git clone https://github.com/ovexro/claudelab.git
 cd claudelab
 pip install -e .
 claudelab --demo

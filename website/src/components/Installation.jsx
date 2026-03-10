@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './Installation.css'
 
-function TerminalBlock({ title, children, prompt = '$' }) {
+function TerminalBlock({ title, children }) {
   return (
     <div className="term-block">
       <div className="term-block-chrome">
@@ -140,31 +140,30 @@ function Installation() {
         <div className="install-step">
           <div className="step-number">03</div>
           <h3 className="step-title">Configure Claude Code Hooks</h3>
-          <TerminalBlock title="~/.claude/settings.json">
+          <TerminalBlock title="~/.claude/hooks.json">
             <pre className="term-json">{`{
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claudelab-hook pre_tool $TOOL_NAME"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claudelab-hook post_tool $TOOL_NAME"
-          }
-        ]
-      }
-    ]
+    "PreToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "/path/to/claudelab-hook.sh"
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "/path/to/claudelab-hook.sh"
+      }]
+    }],
+    "PostToolUseFailure": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "/path/to/claudelab-hook.sh"
+      }]
+    }]
   }
 }`}</pre>
           </TerminalBlock>

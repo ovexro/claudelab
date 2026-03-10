@@ -17,16 +17,25 @@ STATE_FILE="${STATE_DIR}/state"
 mkdir -p "${STATE_DIR}"
 
 write_state() {
-    printf '%s' "$1" > "${STATE_FILE}"
+    # Atomic write via temp file to prevent corruption from concurrent calls
+    local tmp="${STATE_FILE}.$$"
+    printf '%s' "$1" > "${tmp}" && mv -f "${tmp}" "${STATE_FILE}"
 }
 
-# Read JSON from stdin
+# Read JSON from stdin and extract all fields in a single Python call
 INPUT=$(cat)
-
-# Extract fields using python3 (available everywhere, no jq dependency)
-HOOK_EVENT=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('hook_event_name',''))" 2>/dev/null || echo "")
-TOOL=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_name',''))" 2>/dev/null || echo "")
-HAS_ERROR=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if d.get('error','') else 'no')" 2>/dev/null || echo "no")
+eval "$(echo "$INPUT" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print('HOOK_EVENT=' + repr(d.get('hook_event_name', '')))
+    print('TOOL=' + repr(d.get('tool_name', '')))
+    print('HAS_ERROR=' + ('yes' if d.get('error', '') else 'no'))
+except Exception:
+    print('HOOK_EVENT=')
+    print('TOOL=')
+    print('HAS_ERROR=no')
+" 2>/dev/null)" || { HOOK_EVENT=""; TOOL=""; HAS_ERROR="no"; }
 
 case "${HOOK_EVENT}" in
     PreToolUse)

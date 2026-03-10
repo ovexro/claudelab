@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { LOGO, getHeroFrames } from '../assets/ascii-frames'
 import './Hero.css'
 

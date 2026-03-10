@@ -10,6 +10,8 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [{name = "ClaudeLab"}]
+homepage = "https://claudelab.dev"
+repository = "https://github.com/ovexro/claudelab"
 keywords = ["claude", "terminal", "tui", "ascii-art", "animation"]
 classifiers = [
     "Development Status :: 3 - Alpha",

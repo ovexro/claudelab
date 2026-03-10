@@ -31,7 +31,7 @@ SITTING_TYPING_FRAMES: list[list[str]] = [
     ],
     [
         "  \u25c9  ",
-        " /|\\",
+        " /|\\ ",
         " / \\_ ",
     ],
     [
@@ -65,9 +65,9 @@ STANDING_POINTING: list[list[str]] = [
         " / \\ ",
     ],
     [
-        "  \u25c9 /",
-        " /|/ ",
-        " / \\ ",
+        "  \u25c9 / ",
+        " /|/  ",
+        " / \\  ",
     ],
 ]
 

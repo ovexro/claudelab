@@ -40,7 +40,16 @@ THEME_LIGHT = "light"
 def init_colors(theme: str = THEME_DARK) -> None:
     """Initialize curses color pairs for the chosen theme."""
     curses.start_color()
-    curses.use_default_colors()
+    try:
+        curses.use_default_colors()
+    except curses.error:
+        pass
+
+    # Check that the terminal supports enough color pairs
+    max_pairs = curses.COLOR_PAIRS if hasattr(curses, "COLOR_PAIRS") else 0
+    if max_pairs < PAIR_LABEL + 1:
+        # Terminal doesn't support enough color pairs; skip init
+        return
 
     if theme == THEME_DARK:
         _init_dark()

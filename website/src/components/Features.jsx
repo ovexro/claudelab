@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { SCENES, getPreviewFrame } from '../assets/ascii-frames'
+import { SCENES } from '../assets/ascii-frames'
 import './Features.css'
 
 const SCENE_KEYS = ['thinking', 'coding', 'debugging', 'running', 'building', 'idle'];

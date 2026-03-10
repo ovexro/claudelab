@@ -112,6 +112,9 @@ class Renderer:
         self.stdscr = stdscr
         self.activity_fn = activity_fn
         self.fps = max(1, min(fps, 30))
+        if self.fps != fps:
+            import sys
+            print(f"ClaudeLab: FPS clamped to {self.fps} (requested {fps})", file=sys.stderr)
         self.demo = demo
         self._running = True
         self._resized = False
@@ -169,8 +172,14 @@ class Renderer:
             # Handle resize
             if self._resized:
                 self._resized = False
-                curses.endwin()
-                self.stdscr.refresh()
+                try:
+                    curses.endwin()
+                    self.stdscr = curses.initscr()
+                    self.stdscr.nodelay(True)
+                    self.stdscr.timeout(0)
+                    curses.curs_set(0)
+                except curses.error:
+                    pass
                 self._cached_activity = ""  # Force regeneration
 
             try:
@@ -179,7 +188,7 @@ class Renderer:
                 time.sleep(interval)
                 continue
 
-            if height < 5 or width < 20:
+            if height < 7 or width < 20:
                 # Terminal too small
                 self.stdscr.erase()
                 msg = "Too small!"
