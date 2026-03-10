@@ -4,9 +4,10 @@ Drives the curses display at ~8 FPS, compositing the title bar, the
 current scene, and the status bar into the terminal.  Handles terminal
 resize (SIGWINCH) gracefully.
 
-Supports two rendering modes:
-- **ascii** (classic): curses color pairs + ASCII line-drawing art
-- **voxel**: 24-bit ANSI color + half-block Minecraft-style pixel art
+Supports three rendering modes:
+- **ascii**: curses color pairs + ASCII line-drawing art
+- **voxel**: 24-bit ANSI color + half-block pixel art
+- **sixel**: actual pixel graphics via sixel escape sequences
 """
 
 from __future__ import annotations
@@ -114,6 +115,18 @@ def _draw_scene_voxel(
     out.flush()
 
 
+def _draw_scene_sixel(
+    sixel_data: str,
+    start_row: int,
+) -> None:
+    """Write sixel-encoded pixel data to stdout."""
+    out = sys.stdout
+    # Position cursor at the start of the scene area
+    out.write(f"\x1b[{start_row + 1};1H")
+    out.write(sixel_data)
+    out.flush()
+
+
 # ---------------------------------------------------------------------------
 # Main render loop
 # ---------------------------------------------------------------------------
@@ -128,6 +141,7 @@ class Renderer:
         fps: int = 8,
         demo: bool = False,
         voxel: bool = False,
+        sixel: bool = False,
     ) -> None:
         self.stdscr = stdscr
         self.activity_fn = activity_fn
@@ -135,7 +149,8 @@ class Renderer:
         if self.fps != fps:
             print(f"ClaudeLab: FPS clamped to {self.fps} (requested {fps})", file=sys.stderr)
         self.demo = demo
-        self.voxel = voxel
+        self.voxel = voxel or sixel  # sixel uses voxel scenes at higher res
+        self.sixel = sixel
         self._running = True
         self._resized = False
         self._frame_idx = 0
@@ -149,6 +164,10 @@ class Renderer:
         self._cached_activity: str = ""
         self._cached_dims: tuple[int, int] = (0, 0)
         self._cached_frames: list = []
+
+        # Sixel encoder (lazy-init)
+        self._sixel_encoder = None
+        self._sixel_cache: dict[int, str] = {}  # frame_idx -> sixel string
 
     # -- signal handlers ---------------------------------------------------
 
@@ -168,11 +187,34 @@ class Renderer:
             self._cached_activity = activity
             self._cached_dims = dims
             if self.voxel:
-                self._cached_frames = get_voxel_scene_frames(activity, width, height)
+                # Sixel renders at higher resolution (4x)
+                if self.sixel:
+                    scale = 4
+                    self._cached_frames = get_voxel_scene_frames(
+                        activity, width * scale, height * scale
+                    )
+                else:
+                    self._cached_frames = get_voxel_scene_frames(activity, width, height)
             else:
                 self._cached_frames = get_scene_frames(activity, width, height)
             self._frame_idx = 0
+            self._sixel_cache.clear()
         return self._cached_frames
+
+    def _get_sixel_encoder(self):
+        """Lazily create the sixel encoder."""
+        if self._sixel_encoder is None:
+            from claudelab.sixel import SixelEncoder
+            from claudelab import palette
+            self._sixel_encoder = SixelEncoder()
+            # Pre-register all palette colors
+            all_colors = [
+                v for v in vars(palette).values()
+                if isinstance(v, tuple) and len(v) == 3
+                and all(isinstance(c, int) for c in v)
+            ]
+            self._sixel_encoder.register_colors(all_colors)
+        return self._sixel_encoder
 
     # -- main loop ---------------------------------------------------------
 
@@ -239,7 +281,8 @@ class Renderer:
                 time.sleep(interval)
                 continue
 
-            frame = all_frames[self._frame_idx % len(all_frames)]
+            fidx = self._frame_idx % len(all_frames)
+            frame = all_frames[fidx]
             self._frame_idx += 1
 
             # -- draw --
@@ -247,7 +290,23 @@ class Renderer:
 
             _draw_title(self.stdscr, width)
 
-            if self.voxel:
+            if self.sixel:
+                # Encode PixelBuffer to sixel (cached per frame index)
+                if fidx not in self._sixel_cache:
+                    encoder = self._get_sixel_encoder()
+                    self._sixel_cache[fidx] = encoder.encode_from_buffer(frame)
+                sixel_str = self._sixel_cache[fidx]
+
+                # Flush title via curses
+                self.stdscr.noutrefresh()
+                curses.doupdate()
+                # Write sixel scene
+                _draw_scene_sixel(sixel_str, 1)
+                # Status bar
+                _draw_status(self.stdscr, height - 1, width, activity)
+                self.stdscr.noutrefresh()
+                curses.doupdate()
+            elif self.voxel:
                 # frame is a PixelBuffer -- render to ANSI and write to stdout
                 ansi_lines = frame.render_to_halfblocks()
                 # Flush curses title first

@@ -50,9 +50,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--renderer",
-        choices=["auto", "voxel", "ascii"],
+        choices=["auto", "sixel", "voxel", "ascii"],
         default="auto",
-        help="Rendering mode (default: auto). voxel=Minecraft blocks, ascii=classic",
+        help="Rendering mode (default: auto). sixel=pixel graphics, voxel=half-block, ascii=classic",
     )
     return parser.parse_args(argv)
 
@@ -70,14 +70,20 @@ def _curses_main(stdscr: curses.window, args: argparse.Namespace) -> None:
     mode = args.renderer
     if mode == "auto":
         cm = detect_color_mode()
-        mode = "voxel" if cm in ("truecolor", "256") else "ascii"
+        if cm in ("truecolor", "256"):
+            # Try sixel first, fall back to voxel half-block
+            from claudelab.sixel import detect_sixel
+            mode = "sixel" if detect_sixel() else "voxel"
+        else:
+            mode = "ascii"
 
     renderer = Renderer(
         stdscr,
         activity_fn=get_current_activity,
         fps=args.fps,
         demo=args.demo,
-        voxel=(mode == "voxel"),
+        voxel=(mode in ("voxel", "sixel")),
+        sixel=(mode == "sixel"),
     )
 
     try:
