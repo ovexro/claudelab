@@ -121,7 +121,7 @@ HOOK_PATH="$(python -c 'import claudelab, pathlib; print(pathlib.Path(claudelab.
 HOOK_PATH="/path/to/claudelab/hooks/claudelab-hook.sh"
 ```
 
-2. Add the hook to your Claude Code settings. Create or edit `~/.claude/hooks.json`:
+2. Add the hooks to `~/.claude/settings.json` (Claude Code reads hooks from here, **not** a separate `hooks.json`):
 
 ```json
 {

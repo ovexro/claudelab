@@ -140,7 +140,7 @@ function Installation() {
         <div className="install-step">
           <div className="step-number">03</div>
           <h3 className="step-title">Configure Claude Code Hooks</h3>
-          <TerminalBlock title="~/.claude/hooks.json">
+          <TerminalBlock title="~/.claude/settings.json">
             <pre className="term-json">{`{
   "hooks": {
     "PreToolUse": [{

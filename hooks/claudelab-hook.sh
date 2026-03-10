@@ -8,7 +8,7 @@
 #
 # Setup:
 #   1. Ensure this file is executable: chmod +x claudelab-hook.sh
-#   2. Add to ~/.claude/hooks.json (see README.md for full config)
+#   2. Add hooks to ~/.claude/settings.json (see README.md for full config)
 # ──────────────────────────────────────────────────────────────────────
 
 STATE_DIR="${HOME}/.claudelab"
