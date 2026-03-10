@@ -525,28 +525,63 @@ def build_iso_office(
 ) -> tuple[PixelBuffer, dict]:
     """Build the isometric office as a PixelBuffer.
 
+    Dynamically scales the grid to fill the terminal. The isometric floor
+    diamond is sized to span the full width, with walls filling the space
+    above.
+
     Returns (buffer, layout) where layout contains computed positions
     for scene code to place agents and overlays.
     """
     buf = PixelBuffer(width, pixel_height, BG_DARK)
 
-    # Grid dimensions (tiles)
-    grid_w = 6   # tiles going right
-    grid_d = 5   # tiles going into screen
+    # -------------------------------------------------------------------
+    # Dynamic grid sizing: fill the screen
+    # -------------------------------------------------------------------
+    # The iso floor diamond bounding box for grid_w × grid_d:
+    #   pixel_width  = (grid_w + grid_d) * TILE_W / 2
+    #   pixel_height = (grid_w + grid_d) * TILE_H / 2
+    # We want the floor to span the full terminal width.
+    # Reserve ~30-35% of height for walls above the floor.
+    wall_frac = 0.30
+    floor_budget_h = int(pixel_height * (1.0 - wall_frac))
 
-    # Calculate origin so the floor is centered and fills the screen
-    # The floor diamond's bounding box:
-    # - leftmost point: iso(0, grid_d) → x = -grid_d * TW/2
-    # - rightmost point: iso(grid_w, 0) → x = grid_w * TW/2
-    # - topmost point: iso(0, 0) → y = 0
-    # - bottommost point: iso(grid_w, grid_d) → y = (grid_w+grid_d) * TH/2
+    # Total tiles (grid_w + grid_d) to fill width:
+    total_tiles_for_width = (width * 2) // TILE_W
+    # Total tiles to fill floor height budget:
+    total_tiles_for_height = (floor_budget_h * 2) // TILE_H
+
+    # Use the smaller to ensure it fits both dimensions
+    total_tiles = min(total_tiles_for_width, total_tiles_for_height)
+    total_tiles = max(total_tiles, 4)  # absolute minimum
+
+    # Split roughly 55/45 between width and depth (wider than deep)
+    grid_w = max(2, int(total_tiles * 0.55))
+    grid_d = max(2, total_tiles - grid_w)
+    # Clamp so the diamond fits the screen
+    while (grid_w + grid_d) * TILE_W // 2 > width and grid_w + grid_d > 3:
+        if grid_w > grid_d:
+            grid_w -= 1
+        else:
+            grid_d -= 1
+
+    # Floor diamond bounding box
     floor_pixel_w = (grid_w + grid_d) * TILE_W // 2
     floor_pixel_h = (grid_w + grid_d) * TILE_H // 2
 
-    origin_x = width // 2 + (grid_d - grid_w) * TILE_W // 4
-    # Position floor so there's room for walls above and floor fills lower area
-    wall_pixel_h = min(pixel_height // 3, 30)
-    origin_y = wall_pixel_h + 4
+    # Wall height: fill space above the floor
+    wall_pixel_h = max(8, pixel_height - floor_pixel_h - 2)
+
+    # Origin: the iso(0,0) point. Position so floor diamond is centered
+    # horizontally and the bottom of the diamond reaches near the bottom.
+    # Leftmost floor point: iso(0, grid_d) → x = origin_x - grid_d * TW/2
+    # Rightmost: iso(grid_w, 0) → x = origin_x + grid_w * TW/2
+    # Center: origin_x + (grid_w - grid_d) * TW/4 = width/2
+    origin_x = width // 2 - (grid_w - grid_d) * TILE_W // 4
+
+    # Topmost floor point: iso(0,0) → y = origin_y
+    # Bottommost: iso(grid_w, grid_d) → y = origin_y + floor_pixel_h
+    # We want bottommost near pixel_height:
+    origin_y = pixel_height - floor_pixel_h - 1
 
     # Draw walls first (behind everything)
     _draw_back_wall(buf, grid_w, grid_d, origin_x, origin_y, wall_pixel_h)
@@ -555,30 +590,35 @@ def build_iso_office(
     # Draw floor
     _draw_floor(buf, grid_w, grid_d, origin_x, origin_y)
 
-    # Furniture positions (in grid coords)
+    # -------------------------------------------------------------------
+    # Furniture — placed relative to grid, scales with room size
+    # -------------------------------------------------------------------
     # Desk 1: near back-left
-    desk1_gx, desk1_gy = 1.0, 1.0
+    desk1_gx = 1.0
+    desk1_gy = 1.0
     _draw_iso_desk(buf, desk1_gx, desk1_gy, origin_x, origin_y)
     mon1_rect = _draw_iso_monitor(buf, desk1_gx, desk1_gy, origin_x, origin_y)
-
-    # Chair 1: in front of desk 1
     _draw_iso_chair(buf, desk1_gx, desk1_gy + 1.2, origin_x, origin_y)
 
-    # Desk 2: near back-right
-    desk2_gx, desk2_gy = 3.0, 1.0
-    if width >= 60:
+    # Desk 2: offset to the right
+    desk2_gx = min(grid_w - 2.0, max(3.0, grid_w * 0.5))
+    desk2_gy = 1.0
+    if width >= 50:
         _draw_iso_desk(buf, desk2_gx, desk2_gy, origin_x, origin_y)
         mon2_rect = _draw_iso_monitor(buf, desk2_gx, desk2_gy, origin_x, origin_y)
         _draw_iso_chair(buf, desk2_gx, desk2_gy + 1.2, origin_x, origin_y)
     else:
         mon2_rect = (0, 0, 0, 0)
 
-    # Server rack (back-right corner)
+    # Server rack (back-right area)
     if width >= 50:
-        _draw_iso_server_rack(buf, grid_w - 1.5, 0.5, origin_x, origin_y, frame_idx)
+        _draw_iso_server_rack(
+            buf, grid_w - 1.5, 0.5, origin_x, origin_y, frame_idx,
+        )
 
-    # Plant (front-left)
-    _draw_iso_plant(buf, 0.0, grid_d - 1.5, origin_x, origin_y, frame_idx)
+    # Plant (front-left area)
+    plant_gy = min(grid_d - 1.0, max(2.0, grid_d * 0.7))
+    _draw_iso_plant(buf, 0.0, plant_gy, origin_x, origin_y, frame_idx)
 
     # Build layout info for scenes to use
     layout = {
@@ -593,7 +633,6 @@ def build_iso_office(
         "desk2_gy": desk2_gy,
         "mon1_rect": mon1_rect,
         "mon2_rect": mon2_rect,
-        # Agent positions (grid coords where agents should stand/sit)
         "agent1_gx": desk1_gx,
         "agent1_gy": desk1_gy + 0.8,
         "agent2_gx": desk2_gx,
