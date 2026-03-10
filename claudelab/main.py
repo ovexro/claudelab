@@ -92,7 +92,7 @@ def _resolve_mode(renderer_arg: str) -> str:
         return "sixel"
     if renderer_arg == "auto":
         cm = detect_color_mode()
-        return "voxel" if cm in ("truecolor", "256") else "ascii"
+        return "iso" if cm in ("truecolor", "256") else "ascii"
     return renderer_arg  # "voxel" or "ascii"
 
 
