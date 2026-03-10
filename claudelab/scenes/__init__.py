@@ -74,15 +74,17 @@ _ISO_MAP: dict[str, object] | None = None
 def _load_iso_scenes() -> dict[str, object]:
     global _ISO_MAP
     if _ISO_MAP is None:
-        from claudelab.scenes import iso_coding
-        # For now, all activities use iso_coding as the proof of concept
+        from claudelab.scenes import (
+            iso_thinking, iso_coding, iso_debugging,
+            iso_running, iso_building, iso_idle,
+        )
         _ISO_MAP = {
-            "thinking": iso_coding,
+            "thinking": iso_thinking,
             "coding": iso_coding,
-            "debugging": iso_coding,
-            "running": iso_coding,
-            "building": iso_coding,
-            "idle": iso_coding,
+            "debugging": iso_debugging,
+            "running": iso_running,
+            "building": iso_building,
+            "idle": iso_idle,
         }
     return _ISO_MAP
 
