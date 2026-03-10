@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { LOGO, getHeroFrames } from '../assets/voxel-frames'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { LOGO, getHeroFrames, renderToCanvas } from '../assets/voxel-frames'
 import './Hero.css'
 
 const SCENE_NAMES = ['THINKING', 'CODING', 'DEBUGGING', 'RUNNING', 'BUILDING', 'IDLE'];
@@ -16,10 +16,10 @@ function Hero() {
   const [frameIndex, setFrameIndex] = useState(0);
   const [frames, setFrames] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
-  const terminalRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    const heroFrames = getHeroFrames(68, 18);
+    const heroFrames = getHeroFrames(80, 22);
     setFrames(heroFrames);
     setIsVisible(true);
   }, []);
@@ -32,6 +32,15 @@ function Hero() {
     return () => clearInterval(timer);
   }, [frames]);
 
+  // Render current frame to canvas
+  useEffect(() => {
+    const frame = frames[frameIndex];
+    if (!frame || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const scale = Math.max(2, Math.floor(canvas.parentElement.clientWidth / frame.buf.w));
+    renderToCanvas(canvas, frame.buf, scale);
+  }, [frameIndex, frames]);
+
   const currentFrame = frames[frameIndex];
   const currentScene = currentFrame?.scene || 'thinking';
   const currentLabel = currentFrame?.label || 'Thinking';
@@ -41,7 +50,9 @@ function Hero() {
     <section className={`hero ${isVisible ? 'hero--visible' : ''}`}>
       {/* ASCII Logo */}
       <div className="hero-logo">
-        <pre className="hero-logo-ascii" dangerouslySetInnerHTML={{ __html: LOGO.join('\n') }} />
+        <pre className="hero-logo-ascii">
+          {LOGO.join('\n')}
+        </pre>
       </div>
 
       {/* Tagline */}
@@ -53,7 +64,7 @@ function Hero() {
       </p>
 
       {/* Animated Terminal */}
-      <div className="hero-terminal" ref={terminalRef}>
+      <div className="hero-terminal">
         <div className="terminal-chrome">
           <div className="terminal-dots">
             <span className="dot dot--red"></span>
@@ -72,7 +83,9 @@ function Hero() {
             {'═'.repeat(20)} AI ENGINEERING LAB {'═'.repeat(20)}
           </span>
         </div>
-        <pre className="terminal-body" dangerouslySetInnerHTML={{ __html: currentFrame?.lines?.join('\n') || '' }} />
+        <div className="terminal-body-canvas">
+          <canvas ref={canvasRef} className="pixel-canvas" />
+        </div>
         <div className="terminal-statusbar">
           <span>Activity: <span style={{ color: sceneColor }}>{currentLabel.toUpperCase()}</span></span>
           <span>ClaudeLab v0.1.0</span>

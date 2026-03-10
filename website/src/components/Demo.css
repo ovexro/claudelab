@@ -113,15 +113,22 @@
 }
 
 .demo-terminal-body {
-  font-family: var(--font-mono);
-  font-size: 0.5rem;
-  line-height: 1;
-  color: var(--green-dim);
-  padding: 0.5rem 0.75rem;
+  padding: 0;
   min-height: 240px;
-  white-space: pre;
-  user-select: none;
   overflow: hidden;
+  background: #0a0a0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demo-terminal-body .pixel-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .demo-terminal-status {
@@ -186,7 +193,6 @@
   }
 
   .demo-terminal-body {
-    font-size: 0.38rem;
     min-height: 180px;
   }
 

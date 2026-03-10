@@ -60,13 +60,13 @@
   overflow: hidden;
 }
 
-.feature-ascii {
-  font-family: var(--font-mono);
-  font-size: 0.4rem;
-  line-height: 1;
-  color: var(--green-dim);
-  white-space: pre;
-  user-select: none;
+.feature-preview .pixel-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
   min-height: 80px;
 }
 
@@ -99,7 +99,7 @@
     grid-template-columns: 1fr;
   }
 
-  .feature-ascii {
-    font-size: 0.35rem;
+  .feature-preview .pixel-canvas {
+    min-height: 60px;
   }
 }

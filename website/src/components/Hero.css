@@ -124,16 +124,23 @@
   letter-spacing: 0.1em;
 }
 
-.terminal-body {
-  font-family: var(--font-mono);
-  font-size: 0.55rem;
-  line-height: 1;
-  color: var(--green-dim);
-  padding: 0.5rem 0.75rem;
+.terminal-body-canvas {
+  padding: 0;
   min-height: 240px;
   overflow: hidden;
-  white-space: pre;
-  user-select: none;
+  background: #0a0a0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pixel-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .terminal-statusbar {
@@ -238,8 +245,7 @@
     font-size: 1.3rem;
   }
 
-  .terminal-body {
-    font-size: 0.4rem;
+  .terminal-body-canvas {
     min-height: 180px;
   }
 

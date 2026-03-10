@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { SCENES } from '../assets/voxel-frames'
+import { SCENES, renderToCanvas } from '../assets/voxel-frames'
 import './Features.css'
 
 const SCENE_KEYS = ['thinking', 'coding', 'debugging', 'running', 'building', 'idle'];
@@ -13,31 +13,35 @@ const SCENE_COLORS = {
 };
 
 function FeatureCard({ sceneKey, index }) {
-  const [preview, setPreview] = useState([]);
   const [frameIdx, setFrameIdx] = useState(0);
   const [allFrames, setAllFrames] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef(null);
+  const canvasRef = useRef(null);
   const scene = SCENES[sceneKey];
   const color = SCENE_COLORS[sceneKey];
 
   useEffect(() => {
-    const frames = scene.generateFrames(38, 12, 4);
+    const frames = scene.generateFrames(48, 16, 4);
     setAllFrames(frames);
-    if (frames.length > 0) setPreview(frames[0]);
   }, [sceneKey]);
 
   useEffect(() => {
     if (allFrames.length === 0) return;
     const timer = setInterval(() => {
-      setFrameIdx(prev => {
-        const next = (prev + 1) % allFrames.length;
-        setPreview(allFrames[next]);
-        return next;
-      });
+      setFrameIdx(prev => (prev + 1) % allFrames.length);
     }, 500);
     return () => clearInterval(timer);
   }, [allFrames]);
+
+  // Render to canvas
+  useEffect(() => {
+    const buf = allFrames[frameIdx];
+    if (!buf || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const scale = Math.max(2, Math.floor(canvas.parentElement.clientWidth / buf.w));
+    renderToCanvas(canvas, buf, scale);
+  }, [frameIdx, allFrames]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -63,7 +67,7 @@ function FeatureCard({ sceneKey, index }) {
         <h3 className="feature-name" style={{ color }}>{scene.name}</h3>
       </div>
       <div className="feature-preview">
-        <pre className="feature-ascii" dangerouslySetInnerHTML={{ __html: preview.join('\n') }} />
+        <canvas ref={canvasRef} className="pixel-canvas" />
       </div>
       <p className="feature-description">{scene.description}</p>
       <p className="feature-trigger">

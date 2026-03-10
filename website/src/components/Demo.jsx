@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { SCENES } from '../assets/voxel-frames'
+import { SCENES, renderToCanvas } from '../assets/voxel-frames'
 import './Demo.css'
 
 const SCENE_KEYS = ['thinking', 'coding', 'debugging', 'running', 'building', 'idle'];
@@ -18,6 +18,7 @@ function Demo() {
   const [frameIdx, setFrameIdx] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -33,7 +34,7 @@ function Demo() {
   useEffect(() => {
     const scene = SCENES[activeScene];
     if (scene) {
-      const f = scene.generateFrames(60, 18, 8);
+      const f = scene.generateFrames(72, 22, 8);
       setFrames(f);
       setFrameIdx(0);
     }
@@ -47,7 +48,15 @@ function Demo() {
     return () => clearInterval(timer);
   }, [frames]);
 
-  const currentFrame = frames[frameIdx] || [];
+  // Render to canvas
+  useEffect(() => {
+    const buf = frames[frameIdx];
+    if (!buf || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const scale = Math.max(2, Math.floor(canvas.parentElement.clientWidth / buf.w));
+    renderToCanvas(canvas, buf, scale);
+  }, [frameIdx, frames]);
+
   const color = SCENE_COLORS[activeScene];
 
   return (
@@ -98,7 +107,9 @@ function Demo() {
           <div className="demo-terminal-titlebar" style={{ color: '#ffb000' }}>
             {'═'.repeat(18)} AI ENGINEERING LAB {'═'.repeat(18)}
           </div>
-          <pre className="demo-terminal-body" dangerouslySetInnerHTML={{ __html: currentFrame.join('\n') }} />
+          <div className="demo-terminal-body">
+            <canvas ref={canvasRef} className="pixel-canvas" />
+          </div>
           <div className="demo-terminal-status">
             <span>
               Activity: <span style={{ color }}>{SCENES[activeScene]?.name.toUpperCase()}</span>

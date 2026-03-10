@@ -114,6 +114,19 @@ class PixelBuffer {
     }
     return lines;
   }
+  /** Write pixel data into an ImageData for canvas rendering. */
+  toImageData() {
+    const data = new Uint8ClampedArray(this.w * this.h * 4);
+    for (let y = 0; y < this.h; y++) {
+      const row = this.px[y];
+      for (let x = 0; x < this.w; x++) {
+        const c = row[x];
+        const i = (y * this.w + x) * 4;
+        data[i] = c[0]; data[i + 1] = c[1]; data[i + 2] = c[2]; data[i + 3] = 255;
+      }
+    }
+    return new ImageData(data, this.w, this.h);
+  }
 }
 
 // ─── Agent color legends ────────────────────────────────────────────
@@ -725,7 +738,7 @@ function genThinking(w, h, n = 8) {
       buf.sprite(SP.sit, A2, d2 + 3, dy - 20 + 1);
       buf.set(d2 + 4, dy - 8, fi % 2 === 0 ? P.MON_GR : P.MON_BG);
     }
-    return buf.toHtml();
+    return buf;
   });
 }
 
@@ -756,7 +769,7 @@ function genCoding(w, h, n = 8) {
           if (seed > 50) buf.set(mx + c, my + r, cc[seed % cc.length]);
         }
     }
-    return buf.toHtml();
+    return buf;
   });
 }
 
@@ -820,7 +833,7 @@ function genDebugging(w, h, n = 8) {
         else
           buf.px[y][x] = [Math.min(255, r + 12), Math.max(0, g - 5), Math.max(0, b - 5)];
       }
-    return buf.toHtml();
+    return buf;
   });
 }
 
@@ -877,7 +890,7 @@ function genRunning(w, h, n = 8) {
           buf.set(mx + c, my + r, (r + fi) % 3 !== 0 ? P.MON_GR : P.MON_WH);
       }
     }
-    return buf.toHtml();
+    return buf;
   });
 }
 
@@ -942,7 +955,7 @@ function genBuilding(w, h, n = 8) {
       const fill = ((fi + 1) * bw / n) | 0;
       for (let dx = 0; dx < fill; dx++) { buf.set(bx + dx, by, P.PROG_G); buf.set(bx + dx, by + 1, P.PROG_G); }
     }
-    return buf.toHtml();
+    return buf;
   });
 }
 
@@ -997,7 +1010,7 @@ function genIdle(w, h, n = 8) {
         }
       }
     }
-    return buf.toHtml();
+    return buf;
   });
 }
 
@@ -1053,8 +1066,8 @@ export const SCENES = {
 
 export function getPreviewFrame(sceneKey, width = 40, height = 14) {
   const scene = SCENES[sceneKey];
-  if (!scene) return [];
-  return scene.generateFrames(width, height, 1)[0] || [];
+  if (!scene) return null;
+  return scene.generateFrames(width, height, 1)[0] || null;
 }
 
 export function getHeroFrames(width = 68, height = 20) {
@@ -1062,7 +1075,31 @@ export function getHeroFrames(width = 68, height = 20) {
   for (const key of ['thinking', 'coding', 'debugging', 'running', 'building', 'idle']) {
     const scene = SCENES[key];
     const frames = scene.generateFrames(width, height, 4);
-    for (const frame of frames) all.push({ lines: frame, scene: key, label: scene.name });
+    for (const frame of frames) all.push({ buf: frame, scene: key, label: scene.name });
   }
   return all;
+}
+
+/**
+ * Render a PixelBuffer to a canvas element.
+ * Uses image-rendering: pixelated for crisp pixel art scaling.
+ */
+export function renderToCanvas(canvas, buf, scale = 0) {
+  if (!canvas || !buf) return;
+  const ctx = canvas.getContext('2d');
+  // Auto-scale: fit canvas container width
+  if (scale === 0) {
+    scale = Math.max(1, Math.floor(canvas.clientWidth / buf.w));
+  }
+  canvas.width = buf.w * scale;
+  canvas.height = buf.h * scale;
+  // Draw pixel by pixel (faster than ImageData for small buffers with scaling)
+  for (let y = 0; y < buf.h; y++) {
+    const row = buf.px[y];
+    for (let x = 0; x < buf.w; x++) {
+      const c = row[x];
+      ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+      ctx.fillRect(x * scale, y * scale, scale, scale);
+    }
+  }
 }
