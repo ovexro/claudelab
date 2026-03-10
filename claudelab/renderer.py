@@ -195,8 +195,14 @@ class Renderer:
                 self._cached_frames = get_iso_scene_frames(activity, width, height)
             elif self.voxel:
                 if self.sixel:
-                    # Render at normal resolution, then upscale for sixel
-                    self._cached_frames = get_iso_scene_frames(activity, width, height)
+                    # Render iso scene at a fixed size that looks good,
+                    # then upscale for sixel. Cap to ~80x40 chars (like
+                    # a typical tmux half-pane) for consistent room layout.
+                    sixel_w = min(width, 80)
+                    sixel_h = min(height, 40)
+                    self._cached_frames = get_iso_scene_frames(
+                        activity, sixel_w, sixel_h,
+                    )
                 else:
                     self._cached_frames = get_voxel_scene_frames(activity, width, height)
             else:
