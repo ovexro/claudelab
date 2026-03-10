@@ -1,9 +1,10 @@
-"""Voxel idle scene — agents drink coffee, lean back, chat."""
+"""Voxel idle scene — agents drink coffee, lean, chat."""
 
 from __future__ import annotations
 
 from claudelab.palette import (
-    STEAM_WHITE, STEAM_FADE, THOUGHT_CLOUD, THOUGHT_DARK,
+    STEAM_WHITE, STEAM_FADE,
+    THOUGHT_CLOUD, THOUGHT_DARK, THOUGHT_LIGHT,
     MONITOR_TEXT_WHITE,
 )
 from claudelab.pixelbuffer import PixelBuffer, Sprite
@@ -12,28 +13,32 @@ from claudelab.voxel_office import build_voxel_office
 
 NUM_FRAMES = 8
 
-# Chat bubble sprites
+# Chat bubbles (larger with outline)
 _CHAT_1 = Sprite.from_pixel_art([
-    ".CCCCC.",
-    "CCTTTCC",
-    "CCTTTCC",
-    ".CCCCC.",
-    "CC.....",
-], {"C": THOUGHT_CLOUD, "T": MONITOR_TEXT_WHITE, ".": None})
+    "..OOOOOOO.",
+    ".OLLLTLLLO",
+    ".OLTTLTLLO",
+    ".OLLLTLLLO",
+    "..OOOOOOO.",
+    ".OO.......",
+    "OO........",
+], {"O": THOUGHT_DARK, "L": THOUGHT_CLOUD, "T": THOUGHT_LIGHT, ".": None})
 
 _CHAT_2 = Sprite.from_pixel_art([
-    ".CCCCC.",
-    "CCDDTCC",
-    "CCTDDCC",
-    ".CCCCC.",
-    ".....CC",
-], {"C": THOUGHT_CLOUD, "T": MONITOR_TEXT_WHITE, "D": THOUGHT_DARK, ".": None})
+    ".OOOOOOO..",
+    "OLLLWLLLO.",
+    "OLLWWLLLO.",
+    "OLLLWLLLO.",
+    ".OOOOOOO..",
+    ".......OO.",
+    "........OO",
+], {"O": THOUGHT_DARK, "L": THOUGHT_CLOUD, "W": MONITOR_TEXT_WHITE, ".": None})
 
 
 def _draw_steam(buf: PixelBuffer, x: int, base_y: int, fi: int) -> None:
-    """Draw rising steam particles."""
+    """Draw rising steam particles with fade."""
     particles = [
-        (0, 0), (1, -1), (-1, -2), (0, -3), (1, -4),
+        (0, 0), (1, -1), (-1, -2), (0, -3), (1, -4), (-1, -5),
     ]
     for i, (dx, dy) in enumerate(particles):
         py = base_y + dy - (fi % 4)
@@ -42,6 +47,9 @@ def _draw_steam(buf: PixelBuffer, x: int, base_y: int, fi: int) -> None:
             fade = abs(dy) + (fi % 4)
             c = STEAM_WHITE if fade < 3 else STEAM_FADE
             buf.set_pixel(px, py, c)
+            # Double-wide for visibility
+            if px + 1 < buf.width:
+                buf.set_pixel(px + 1, py, c if fade < 2 else STEAM_FADE)
 
 
 def get_frames(width: int, height: int) -> list[PixelBuffer]:
@@ -51,40 +59,41 @@ def get_frames(width: int, height: int) -> list[PixelBuffer]:
     for fi in range(NUM_FRAMES):
         buf = build_voxel_office(width, pixel_h, fi)
 
-        wall_h = max(4, pixel_h * 2 // 5)
+        wall_h = max(6, pixel_h * 7 // 20)
         floor_y = wall_h
         desk_y = floor_y + 2
 
-        # Agent 1 drinking coffee at desk
+        # Agent 1 drinking coffee
         if width >= 40:
             drinker = DRINKING[fi % len(DRINKING)]
             agent_y = desk_y - drinker.height + 1
             buf.draw_sprite(drinker, 5, agent_y)
+            # Steam
+            _draw_steam(buf, 16, agent_y - 2, fi)
 
-            # Steam from coffee
-            _draw_steam(buf, 12, agent_y - 2, fi)
-
-        # Agent 2 leaning back / idle at desk 2
+        # Agent 2 leaning / idle
         if width >= 60:
-            desk2_x = width // 3 + 2
+            desk2_x = width // 3 + 4
             if fi % 4 < 2:
-                buf.draw_sprite(LEANING, desk2_x + 2, desk_y - LEANING.height + 1)
+                buf.draw_sprite(LEANING, desk2_x + 3, desk_y - LEANING.height + 1)
             else:
-                buf.draw_sprite(SITTING_IDLE_2, desk2_x + 2, desk_y - SITTING_IDLE_2.height + 1)
+                buf.draw_sprite(SITTING_IDLE_2, desk2_x + 3, desk_y - SITTING_IDLE_2.height + 1)
 
-        # Chat bubbles (alternate between agents)
+        # Chat bubbles
         if width >= 55:
             if fi % 4 < 2:
-                buf.draw_sprite(_CHAT_1, 14, desk_y - 16)
+                bub_y = max(0, desk_y - DRINKING[0].height - 6)
+                buf.draw_sprite(_CHAT_1, 18, bub_y)
             elif fi % 4 == 2:
-                desk2_x = width // 3 + 2
-                buf.draw_sprite(_CHAT_2, desk2_x + 10, desk_y - 16)
+                desk2_x = width // 3 + 4
+                bub_y = max(0, desk_y - LEANING.height - 6)
+                buf.draw_sprite(_CHAT_2, desk2_x + 14, bub_y)
 
         # Steam from coffee machine
         if width >= 55:
-            cm_x = width // 2 + 4
+            cm_x = width // 2 + 6
             cm_y = floor_y + 2
-            _draw_steam(buf, cm_x + 1, cm_y - 2, fi + 3)
+            _draw_steam(buf, cm_x + 2, cm_y - 2, fi + 3)
 
         frames.append(buf)
     return frames
